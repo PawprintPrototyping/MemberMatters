@@ -72,6 +72,7 @@ class GetConfig(APIView):
             "enableRecentSwipesPage": config.ENABLE_RECENT_SWIPES_PAGE or user_is_admin,
             "enableReportIssue": config.ENABLE_REPORT_ISSUE,
             "enableMembershipStatusCard": config.ENABLE_MEMBERSHIP_STATUS_CARD,
+            "enableInvoiceBilling": config.ENABLE_INVOICE_BILLING,
         }
 
         keys = {"stripePublishableKey": config.STRIPE_PUBLISHABLE_KEY}
@@ -415,6 +416,7 @@ class ProfileDetail(generics.GenericAPIView):
                     else None if p.membership_plan else None
                 ),
                 "subscriptionState": p.subscription_status,
+                "billingMethod": p.billing_method,
             },
             "permissions": {"staff": user.is_staff},
         }
