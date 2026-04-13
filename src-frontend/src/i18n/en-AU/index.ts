@@ -703,13 +703,6 @@ export default {
     accessCardComplete: 'Access card registered',
     accessCardRequired: 'Access card registration required',
     setupInProgress: 'Setup in progress.',
-    activeDescription: 'You are an active member.',
-    subscriptionChip: {
-      active: 'Subscription active',
-      cancelling: 'Subscription cancelling',
-      inactive: 'No active subscription',
-      pending: 'Awaiting invoice payment',
-    },
     membershipExpires: 'Membership expires on {date}.',
     cancellingWarning:
       'Your subscription is cancelling. Access will end at the next renewal date.',
