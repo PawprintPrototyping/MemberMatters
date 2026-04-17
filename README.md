@@ -136,3 +136,4 @@ Feel free to add your organisation to this list (via a pull request) if you're a
 * [SparkCC](https://www.sparkcc.org) (September 2021) - A community of makers on the NSW Central Coast based in Palmdale, NSW, Australia.
 * [Pawprint Prototyping](https://pawprintprototyping.org/) (October 2021) - non-profit hackerspace in Santa Clara, California, USA.  A lot of us are also animals on the internet 🐾.
 * [LCD Porto](https://lcdporto.org/) (April 2026) - A makerspace based in Matosinhos, Porto, Portugal.
+* [Hacksburg](https://hacksburg.org/) (October 2025) - A makerspace based in Blacksburg, Virginia, USA.
