@@ -655,7 +655,15 @@ class Register(APIView):
                 status=status.HTTP_409_CONFLICT,
             )
 
-        if Profile.objects.filter(screen_name=body.get("screenName").lower()).exists():
+        screen_name = (body.get("screenName") or "").strip()
+
+        if not screen_name:
+            if config.REQUIRE_SCREEN_NAME:
+                return Response(
+                    {"message": "error.screenNameRequired"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        elif Profile.objects.filter(screen_name=screen_name.lower()).exists():
             return Response(
                 {"message": "error.screenNameAlreadyExists"},
                 status=status.HTTP_409_CONFLICT,
@@ -673,7 +681,7 @@ class Register(APIView):
             user=new_user,
             first_name=body.get("firstName"),
             last_name=body.get("lastName"),
-            screen_name=body.get("screenName"),
+            screen_name=screen_name,
             phone=body.get("mobile"),
             vehicle_registration_plate=body.get("vehicleRegistrationPlate"),
         )
