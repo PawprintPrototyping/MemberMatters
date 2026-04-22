@@ -125,29 +125,12 @@ class MakeMember(APIView):
                 user=request.user,
             )
 
-            if email:
-                return Response(
-                    {
-                        "success": True,
-                        "message": "adminTools.makeMemberSuccess",
-                    }
-                )
-
-            # if there was an error sending the welcome email
-            elif email is False:
-                return Response(
-                    {"success": False, "message": "adminTools.makeMemberErrorEmail"}
-                )
-
-            # otherwise some other error happened
-            else:
-                capture_message("Unknown error occurred when running makemember.")
-                return Response(
-                    {
-                        "success": False,
-                        "message": "adminTools.makeMemberError",
-                    }
-                )
+            return Response(
+                {
+                    "success": True,
+                    "message": "adminTools.makeMemberSuccess",
+                }
+            )
         else:
             return Response(
                 {

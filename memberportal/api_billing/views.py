@@ -4,6 +4,7 @@ from django.http import HttpRequest
 from profile.models import Profile
 from access.models import Doors, Interlock
 from api_admin_tools.models import *
+from .models import ProcessedStripeEvent
 
 from rest_framework import status, permissions
 from rest_framework.response import Response
@@ -573,8 +574,6 @@ class CompleteSignup(StripeAPIView):
                     }
                 )
 
-            member_profile.activate()
-
             # give default door access
             for door in Doors.objects.filter(all_members=True):
                 member_profile.doors.add(door)
@@ -583,8 +582,10 @@ class CompleteSignup(StripeAPIView):
             for interlock in Interlock.objects.filter(all_members=True):
                 member_profile.interlocks.add(interlock)
 
-            member_profile.user.email_membership_application()
-            member_profile.user.email_welcome()
+            # activate() owns the welcome/access-enabled emails and SMS; it
+            # is idempotent so a concurrent invoice.paid webhook cannot cause
+            # duplicate notifications here.
+            member_profile.activate()
 
             return Response({"success": True})
 
@@ -1045,8 +1046,6 @@ class StripeWebhook(StripeAPIView):
             member_profile.user.log_event("Membership payment failed", "stripe")
 
         if event_type == "customer.subscription.deleted":
-            # the subscription was deleted, so deactivate the member
-
             # Void any invoices still open against this subscription. Stripe does
             # not auto-void them on cancellation, so without this they linger in
             # the customer's Stripe portal indefinitely. Safe for both card and
@@ -1060,14 +1059,47 @@ class StripeWebhook(StripeAPIView):
             except stripe.error.StripeError as e:
                 capture_exception(e)
 
-            subject = "Your membership has been cancelled"
-            message = (
-                "You will receive another email shortly confirming that your access has been deactivated. Your "
-                "membership was cancelled because we couldn't collect your payment, or you chose not to renew it."
-            )
+            previous_state = member_profile.state
 
-            member_profile.deactivate()
-            member_profile.user.email_notification(subject, message)
+            if previous_state == "active":
+                # Member had site access — deactivate and notify.
+                subject = "Your membership has been cancelled"
+                message = (
+                    "You will receive another email shortly confirming that your access has been deactivated. Your "
+                    "membership was cancelled because we couldn't collect your payment, or you chose not to renew it."
+                )
+                member_profile.deactivate()
+                member_profile.user.email_notification(subject, message)
+
+                admin_subject = f"The membership for {member_profile.get_full_name()} was just cancelled"
+                admin_message = (
+                    f"The Stripe subscription for {member_profile.get_full_name()} ended, so their membership has "
+                    f"been cancelled. Their site access has been turned off."
+                )
+                send_email_to_admin(
+                    admin_subject,
+                    template_vars={"title": admin_subject, "message": admin_message},
+                    reply_to=member_profile.user.email,
+                    user=member_profile.user,
+                )
+            elif previous_state == "noob":
+                # Signup lapsed without the member ever activating (e.g. invoice
+                # billing where the invoice went past due and Stripe auto-cancelled).
+                # They never had access — don't send "access disabled" messaging.
+                # Drop the default door/interlock rows that CompleteSignup
+                # pre-staged so they don't linger for a future re-enrolment.
+                member_profile.doors.clear()
+                member_profile.interlocks.clear()
+
+                subject = "Your membership signup has lapsed"
+                message = (
+                    "We weren't able to collect your membership payment in time, "
+                    "so your pending signup has been cancelled. You can sign up "
+                    "again at any time from the member portal."
+                )
+                member_profile.user.email_notification(subject, message)
+            # state in {"inactive", "accountonly"}: quiet cleanup only — they
+            # already lacked access (or opted out), so no notification fires.
 
             member_profile.membership_plan = None
             member_profile.stripe_subscription_id = None
@@ -1077,21 +1109,6 @@ class StripeWebhook(StripeAPIView):
 
             member_profile.user.log_event(
                 "Membership was cancelled due to Stripe subscription ending", "stripe"
-            )
-
-            subject = f"The membership for {member_profile.get_full_name()} was just cancelled"
-            title = subject
-            message = (
-                f"The Stripe subscription for {member_profile.get_full_name()} ended, so their membership has "
-                f"been cancelled. Their site access has been turned off."
-            )
-            template_vars = {"title": title, "message": message}
-
-            send_email_to_admin(
-                subject,
-                template_vars=template_vars,
-                reply_to=member_profile.user.email,
-                user=member_profile.user,
             )
 
         return Response()
