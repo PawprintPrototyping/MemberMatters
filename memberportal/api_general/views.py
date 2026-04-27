@@ -58,6 +58,9 @@ class GetConfig(APIView):
                 "privacyPolicyUrl": config.SIGNUP_PRIVACY_POLICY_URL,
                 "privacyPolicyText": config.SIGNUP_PRIVACY_POLICY_TEXT,
             },
+            "profile": {
+                "canEditBasicDetails": config.MEMBER_CAN_EDIT_BASIC_DETAILS,
+            },
             "enableWebcams": config.ENABLE_WEBCAMS,
             "siteBanner": config.SITE_BANNER,
             "enableSiteSignIn": config.ENABLE_PORTAL_SITE_SIGN_IN,
@@ -429,19 +432,25 @@ class ProfileDetail(generics.GenericAPIView):
     def put(self, request):
         p = request.user.profile
         body = json.loads(request.body)
-        email = body.get("email").lower()
+        can_edit_basic = config.MEMBER_CAN_EDIT_BASIC_DETAILS
         screen_name = (body.get("screenName") or "").strip()
 
-        # check if email is specified
-        if not email:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+        if can_edit_basic:
+            email = (body.get("email") or "").lower()
 
-        # check if email is already in use
-        if User.objects.filter(email=email).exists() and email != request.user.email:
-            return Response(
-                {"message": "error.accountAlreadyExists"},
-                status=status.HTTP_409_CONFLICT,
-            )
+            # check if email is specified
+            if not email:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+
+            # check if email is already in use
+            if (
+                User.objects.filter(email=email).exists()
+                and email != request.user.email
+            ):
+                return Response(
+                    {"message": "error.accountAlreadyExists"},
+                    status=status.HTTP_409_CONFLICT,
+                )
 
         # check if screen name is already in use (case-insensitive, excluding self)
         if (
@@ -455,10 +464,12 @@ class ProfileDetail(generics.GenericAPIView):
                 status=status.HTTP_409_CONFLICT,
             )
 
-        request.user.email = body.get("email")
-        p.first_name = body.get("firstName")
-        p.last_name = body.get("lastName")
-        p.phone = body.get("phone")
+        if can_edit_basic:
+            request.user.email = body.get("email")
+            p.first_name = body.get("firstName")
+            p.last_name = body.get("lastName")
+            p.phone = body.get("phone")
+
         p.screen_name = screen_name
         p.vehicle_registration_plate = body.get("vehicleRegistrationPlate")
 
