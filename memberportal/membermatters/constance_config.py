@@ -472,6 +472,8 @@ CONSTANCE_CONFIG_FIELDSETS = OrderedDict(
         (
             "Features",
             (
+                "ENABLE_REGISTRATION",
+                "REGISTRATION_DISABLED_MESSAGE",
                 "ENABLE_WEBCAMS",
                 "ENABLE_PROXY_VOTING",
                 "ENABLE_MEMBERSHIP_STATUS_CARD",
