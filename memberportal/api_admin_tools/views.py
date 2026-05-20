@@ -860,14 +860,27 @@ class MemberProfile(APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         body = json.loads(request.body)
-        member = User.objects.get(id=member_id)
+        member = get_object_or_404(User, id=member_id)
 
         rfid = (body.get("rfidCard") or "").strip() or None
         rfid_changed = member.profile.rfid != rfid
 
-        screen_name = (body.get("screenName") or "").strip()
+        # Empty string maps to NULL so unset handles don't collide on the
+        # case-insensitive unique constraint.
+        screen_name = (body.get("screenName") or "").strip() or None
+        email = (body.get("email") or "").lower()
 
-        # check if screen name is already in use (case-insensitive, excluding self)
+        if (
+            email
+            and User.objects.filter(email__iexact=email)
+            .exclude(pk=member.pk)
+            .exists()
+        ):
+            return Response(
+                {"message": "error.accountAlreadyExists"},
+                status=status.HTTP_409_CONFLICT,
+            )
+
         if (
             screen_name
             and Profile.objects.filter(screen_name__iexact=screen_name)
@@ -890,7 +903,7 @@ class MemberProfile(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        member.email = body.get("email")
+        member.email = email
         member.profile.first_name = body.get("firstName")
         member.profile.last_name = body.get("lastName")
         member.profile.rfid = rfid
@@ -899,8 +912,25 @@ class MemberProfile(APIView):
         member.profile.vehicle_registration_plate = body.get("vehicleRegistrationPlate")
         member.profile.exclude_from_email_export = body.get("excludeFromEmailExport")
 
-        member.save()
-        member.profile.save()
+        try:
+            with transaction.atomic():
+                member.save()
+                member.profile.save()
+        except IntegrityError:
+            if (
+                email
+                and User.objects.filter(email__iexact=email)
+                .exclude(pk=member.pk)
+                .exists()
+            ):
+                return Response(
+                    {"message": "error.accountAlreadyExists"},
+                    status=status.HTTP_409_CONFLICT,
+                )
+            return Response(
+                {"message": "error.screenNameAlreadyExists"},
+                status=status.HTTP_409_CONFLICT,
+            )
 
         if rfid_changed:
             for door in member.profile.doors.all():
