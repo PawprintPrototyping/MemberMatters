@@ -526,7 +526,10 @@ CONSTANCE_CONFIG_FIELDSETS = OrderedDict(
         ),
         (
             "Member Profile",
-            ("MEMBER_CAN_EDIT_BASIC_DETAILS",),
+            (
+                "MEMBER_CAN_EDIT_BASIC_DETAILS",
+                "PROFILE_DEFAULT_PHONE_REGION",
+            ),
         ),
         (
             "Moodle (LMS) Integration",
