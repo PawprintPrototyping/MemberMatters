@@ -79,7 +79,13 @@
             />
             <q-btn
               class="q-mr-sm q-mb-sm"
-              :color="selectedMember.stateLocked ? 'positive' : 'grey-7'"
+              :color="
+                selectedMember.stateLocked
+                  ? 'positive'
+                  : isSettledNonMember
+                  ? 'warning'
+                  : 'grey-7'
+              "
               :label="
                 selectedMember.stateLocked
                   ? $t('adminTools.unlockAccount')
