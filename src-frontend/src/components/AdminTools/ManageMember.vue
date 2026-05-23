@@ -1789,9 +1789,7 @@ export default defineComponent({
           });
         })
         .finally(() => {
-          setTimeout(() => {
-            this.adminDialogs.toggleAccess.loading = false;
-          }, 1200);
+          this.adminDialogs.toggleAccess.loading = false;
         });
     },
     openMakeMemberDialog() {
@@ -1812,9 +1810,7 @@ export default defineComponent({
           });
         })
         .finally(() => {
-          setTimeout(() => {
-            this.adminDialogs.makeMember.loading = false;
-          }, 1200);
+          this.adminDialogs.makeMember.loading = false;
         });
     },
     openCancelMembershipDialog() {
@@ -1838,9 +1834,7 @@ export default defineComponent({
           });
         })
         .finally(() => {
-          setTimeout(() => {
-            this.adminDialogs.cancelMembership.loading = false;
-          }, 1200);
+          this.adminDialogs.cancelMembership.loading = false;
         });
     },
     openLockDialog() {
@@ -1863,9 +1857,7 @@ export default defineComponent({
           });
         })
         .finally(() => {
-          setTimeout(() => {
-            this.adminDialogs.lock.loading = false;
-          }, 1200);
+          this.adminDialogs.lock.loading = false;
         });
     },
     optOutEmailExport() {
