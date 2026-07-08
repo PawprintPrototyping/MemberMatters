@@ -192,49 +192,41 @@ export default {
     icons() {
       return icons;
     },
-    // Order here = visual order in the checklist. Adding a step is one entry.
-    // `complete` is null until requiredSteps loads from /api/billing/can-signup/.
+    // Order = visual order in the checklist. Step set + status come from the
+    // shared signupSteps helper; only the i18n labels/captions live here.
     checklistSteps() {
-      const steps = [];
-      if (this.features.enableMembershipPayments) {
-        steps.push({
-          name: 'payment',
-          complete: this.paymentComplete,
-          pending: this.paymentPending,
+      const meta = {
+        payment: {
           label: this.$t('membershipStatusCard.payment'),
           captionComplete: this.$t('membershipStatusCard.paymentComplete'),
           captionRequired: this.$t('membershipStatusCard.paymentRequired'),
           captionPending: this.$t('membershipStatusCard.paymentPending'),
-        });
-      }
-      if ((this.features.signup?.termsAcceptanceCards || []).length > 0) {
-        steps.push({
-          name: 'terms',
-          complete: this.termsComplete,
+        },
+        terms: {
           label: this.$t('signup.termsAcceptance'),
           captionComplete: this.$t('membershipStatusCard.termsComplete'),
           captionRequired: this.$t('membershipStatusCard.termsRequired'),
-        });
-      }
-      if (this.features.signup?.enableInduction) {
-        steps.push({
-          name: 'induction',
-          complete: this.inductionComplete,
+        },
+        induction: {
           label: this.$t('signup.induction'),
           captionComplete: this.$t('membershipStatusCard.inductionComplete'),
           captionRequired: this.$t('membershipStatusCard.inductionRequired'),
-        });
-      }
-      if (this.features.signup?.requireAccessCard) {
-        steps.push({
-          name: 'accessCard',
-          complete: this.accessCardComplete,
+        },
+        accessCard: {
           label: this.$t('signup.accessCard'),
           captionComplete: this.$t('membershipStatusCard.accessCardComplete'),
           captionRequired: this.$t('membershipStatusCard.accessCardRequired'),
-        });
-      }
-      return steps;
+        },
+      };
+      return enabledSignupSteps(this.features).map((name) => ({
+        name,
+        ...signupStepStatus(
+          name,
+          this.requiredSteps,
+          this.profile.financial.subscriptionState
+        ),
+        ...meta[name],
+      }));
     },
     hasAnyStep() {
       return this.checklistSteps.length > 0;
@@ -244,9 +236,6 @@ export default {
     },
     isLocked() {
       return this.signupStage === 'locked';
-    },
-    paymentPending() {
-      return this.profile.financial.subscriptionState === 'pending';
     },
     isSignupInProgress() {
       return ['needs_plan', 'needs_requirements', 'awaiting_payment'].includes(
