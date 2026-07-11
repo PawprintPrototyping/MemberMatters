@@ -532,6 +532,7 @@ CONSTANCE_CONFIG_FIELDSETS = OrderedDict(
                 "SIGNUP_PRIVACY_POLICY_TEXT",
                 "TERMS_ACCEPTANCE_CARDS",
                 "ENABLE_MEMBERSHIP_APPLICATION_USER_EMAIL",
+                "FORCE_SIGNUP_COMPLETION",
             ),
         ),
         (
