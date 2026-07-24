@@ -1,0 +1,11 @@
+# zizmor configuration
+# https://docs.zizmor.sh/configuration/
+
+rules:
+  dangerous-triggers:
+    ignore:
+      # workflow_run is deliberately used here to promote the untrusted PR image
+      # built by build_docker.pr.yml into GHCR with elevated permissions and to
+      # comment on the PR. All fork-supplied inputs (image name, PR number) are
+      # routed through env: and validated in the workflow itself.
+      - upload_docker.pr.yml

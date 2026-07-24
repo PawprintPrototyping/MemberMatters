@@ -1,0 +1,54 @@
+# Weekly Dependabot updates for every dependency ecosystem in this repo.
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+version: 2
+updates:
+  # GitHub Actions used by workflows under .github/workflows/. Dependabot
+  # understands SHA-pinned actions and will update both the SHA and the
+  # trailing "# vX.Y.Z" version comment.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+
+  # Docker base image in docker/Dockerfile
+  - package-ecosystem: "docker"
+    directory: "/docker"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # Root package.json (tooling / husky / etc.)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+
+  # Quasar frontend
+  - package-ecosystem: "npm"
+    directory: "/src-frontend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+
+  # Capacitor mobile shell nested inside the frontend
+  - package-ecosystem: "npm"
+    directory: "/src-frontend/src-capacitor"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+
+  # Django backend
+  - package-ecosystem: "pip"
+    directory: "/memberportal"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+
+  # Sphinx docs build
+  - package-ecosystem: "pip"
+    directory: "/docs"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5

@@ -1,10 +1,23 @@
 name: Upload Docker Image (On PR - after build)
 
+# workflow_run intentionally used so this job can push the PR image to GHCR and
+# comment on the PR with elevated permissions unavailable to fork-triggered PR runs.
+# Hardening: (a) restrict to successful pull_request runs, (b) all interpolation of
+# fork-supplied values goes through env: (see zizmor template-injection), (c) the
+# image name is validated against a strict allow-list before push. The
+# dangerous-triggers finding for this file is acknowledged in .github/zizmor.yml.
+
 on:
   workflow_run:
     workflows: ["Build Docker Image (On PR)"]
     types:
       - completed
+
+permissions: {}
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: pawprintprototyping/membermatters
 
 jobs:
   upload-docker-pr:
@@ -12,71 +25,123 @@ jobs:
     if: >
       github.event.workflow_run.event == 'pull_request' &&
       github.event.workflow_run.conclusion == 'success'
+    permissions:
+      contents: read
+      actions: read
+      packages: write
     outputs:
       imagename: ${{ steps.extract_image_name.outputs.imagename }}
       prnumber: ${{ steps.extract_pr_number.outputs.prnumber }}
     steps:
       - name: Download PR Image
-        uses: actions/github-script@v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
         with:
           script: |
-            var artifacts = await github.rest.actions.listWorkflowRunArtifacts({
-               owner: context.repo.owner,
-               repo: context.repo.repo,
-               run_id: ${{github.event.workflow_run.id }},
+            const runId = Number(process.env.WORKFLOW_RUN_ID);
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: runId,
             });
-            var matchArtifact = artifacts.data.artifacts.filter((artifact) => {
-              return artifact.name == "pr"
-            })[0];
-            var download = await github.rest.actions.downloadArtifact({
-               owner: context.repo.owner,
-               repo: context.repo.repo,
-               artifact_id: matchArtifact.id,
-               archive_format: 'zip',
+            const matchArtifact = artifacts.data.artifacts.find(a => a.name === 'pr');
+            if (!matchArtifact) {
+              throw new Error('pr artifact not found');
+            }
+            const download = await github.rest.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: matchArtifact.id,
+              archive_format: 'zip',
             });
-            var fs = require('fs');
-            fs.writeFileSync('${{github.workspace}}/pr.zip', Buffer.from(download.data));
+            const fs = require('fs');
+            fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/pr.zip`, Buffer.from(download.data));
+
       - name: Unzip PR Image
-        run: |
-          unzip pr.zip
+        shell: bash
+        run: unzip pr.zip
+
       - name: Check PR Metadata
+        shell: bash
         run: |
           cat ./prnumber
           cat ./branchname
           cat ./imagename
+
       - name: Extract image name
-        shell: bash
-        run: echo "imagename="$(cat imagename)"" >> $GITHUB_OUTPUT
         id: extract_image_name
-      - name: Extract issue/pr number
         shell: bash
-        run: echo "prnumber="$(cat prnumber)"" >> $GITHUB_OUTPUT
+        run: echo "imagename=$(cat imagename)" >> "$GITHUB_OUTPUT"
+
+      - name: Extract issue/pr number
         id: extract_pr_number
+        shell: bash
+        run: echo "prnumber=$(cat prnumber)" >> "$GITHUB_OUTPUT"
+
+      - name: Validate PR image name and number
+        env:
+          PR_IMAGE_NAME: ${{ steps.extract_image_name.outputs.imagename }}
+          PR_NUMBER: ${{ steps.extract_pr_number.outputs.prnumber }}
+        shell: bash
+        run: |
+          expected_prefix="${REGISTRY}/${IMAGE_NAME}:untrusted-pr-image-"
+          # Allow the image name only if it matches the expected prefix and uses
+          # a safe character set. Anything else could indicate a tampered artifact.
+          if [[ "$PR_IMAGE_NAME" != "$expected_prefix"* ]]; then
+            echo "Refusing image name outside allowed prefix: $PR_IMAGE_NAME" >&2
+            exit 1
+          fi
+          if [[ ! "$PR_IMAGE_NAME" =~ ^[A-Za-z0-9._:/-]+$ ]]; then
+            echo "Refusing image name with disallowed characters: $PR_IMAGE_NAME" >&2
+            exit 1
+          fi
+          if [[ ! "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "Refusing non-numeric PR number: $PR_NUMBER" >&2
+            exit 1
+          fi
+
       - name: Load PR Image
+        shell: bash
         run: |
           docker load --input ./untrusted-pr-image.tar
           docker image ls -a
 
-      - name: Login to DockerHub
-        uses: docker/login-action@v3
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@abd2ef45e78c5afb21d64d4ca52ee8550d9572c7 # v4.5.1
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Push docker image to DockerHub
-        run: |
-          docker push ${{ steps.extract_image_name.outputs.imagename }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push docker image to GHCR
+        env:
+          PR_IMAGE_NAME: ${{ steps.extract_image_name.outputs.imagename }}
+        shell: bash
+        run: docker push "$PR_IMAGE_NAME"
+
   comment_docker_image:
     needs: upload-docker-pr
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     steps:
       - name: Comment name of docker image
         id: comment_docker_image
-        uses: actions/github-script@v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          PR_NUMBER: ${{ needs.upload-docker-pr.outputs.prnumber }}
+          PR_IMAGE_NAME: ${{ needs.upload-docker-pr.outputs.imagename }}
         with:
           script: |
-            github.rest.issues.createComment({
-              issue_number: ${{ needs.upload-docker-pr.outputs.prnumber }},
+            const prNumber = Number(process.env.PR_NUMBER);
+            const imageName = process.env.PR_IMAGE_NAME;
+            if (!Number.isInteger(prNumber) || prNumber <= 0) {
+              throw new Error(`Invalid PR number: ${process.env.PR_NUMBER}`);
+            }
+            await github.rest.issues.createComment({
+              issue_number: prNumber,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: 'Created image with name `${{ needs.upload-docker-pr.outputs.imagename }}`. WARNING: run this image at your own risk - it was created from a potentially untrusted PR.'
-            })
+              body: `Created image with name \`${imageName}\`. WARNING: run this image at your own risk - it was created from a potentially untrusted PR.`
+            });
