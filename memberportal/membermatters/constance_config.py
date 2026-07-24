@@ -301,12 +301,12 @@ CONSTANCE_CONFIG = {
         "Enter your measurement ID to enable Google analytics. Only the new GA4 measurement IDs are supported. It should look something like G-XXXXXXXXXX.",
     ),
     "SENTRY_DSN_FRONTEND": (
-        "https://577dc95136cd402bb273d00f46c2a017@sentry.serv02.binarydigital.com.au/5/",
-        "Enter a Sentry DSN to enable sentry logging of frontend errors.",
+        "",
+        "Enter a Sentry DSN to enable sentry logging of frontend errors. Leave blank to disable.",
     ),
     "SENTRY_DSN_BACKEND": (
-        "https://8ba460796a9a40d4ac2584e0e8dca59a@sentry.serv02.binarydigital.com.au/4",
-        "Enter a Sentry DSN to enable sentry logging of backend errors.",
+        "",
+        "Enter a Sentry DSN to enable sentry logging of backend errors. Leave blank to disable.",
     ),
     "POSTMARK_API_KEY": (
         "PLEASE_CHANGE_ME",

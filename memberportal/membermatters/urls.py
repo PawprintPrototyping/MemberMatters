@@ -18,24 +18,32 @@ def safe_constance_get(fld: str):
     return getattr(config, fld)
 
 
-# try:
-#     SENTRY_DSN_BACKEND = safe_constance_get("SENTRY_DSN_BACKEND")
-#     if (
-#             SENTRY_DSN_BACKEND
-#             and os.environ.get("MM_ENV")
-#             and os.environ.get("MM_ENV") != "Development"
-#     ):
-#         version = None
-#         with open("../package.json") as f:
-#             d = json.load(f)
-#
-#         sentry_sdk.init(
-#             release=d.get("version"),
-#             dsn=SENTRY_DSN_BACKEND,
-#             integrations=[DjangoIntegration()],
-#         )
-# except django.db.utils.OperationalError as e:
-#     pass
+# Initialise Sentry for backend error reporting. Skipped when:
+#   * no DSN is configured (default),
+#   * MM_ENV is unset or set to "Development"
+#   * the constance table isn't yet available (e.g. first-run migrations).
+try:
+    SENTRY_DSN_BACKEND = getattr(config, "SENTRY_DSN_BACKEND", "")
+    if (
+        SENTRY_DSN_BACKEND
+        and os.environ.get("MM_ENV")
+        and os.environ.get("MM_ENV") != "Development"
+    ):
+        release = None
+        try:
+            with open("../package.json") as f:
+                release = json.load(f).get("version")
+        except (OSError, ValueError):
+            pass
+
+        sentry_sdk.init(
+            release=os.environ.get("SENTRY_RELEASE", release),
+            environment=os.environ.get("SENTRY_ENVIRONMENT", os.environ.get("MM_ENV", "Development")),
+            dsn=SENTRY_DSN_BACKEND,
+            integrations=[DjangoIntegration()],
+        )
+except django.db.utils.OperationalError:
+    pass
 
 urlpatterns = [
     path("api/openid/", include("oidc_provider.urls", namespace="oidc_provider")),

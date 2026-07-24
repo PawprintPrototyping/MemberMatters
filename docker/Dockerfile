@@ -50,6 +50,12 @@ RUN python3 manage.py collectstatic --noinput
 ADD docker/nginx.conf /etc/nginx/nginx.conf
 ADD docker /usr/src/app/docker
 
+# Short commit SHA baked in at build time; consumed by the Sentry init
+# in memberportal/membermatters/urls.py as the release tag. Kept last
+# so it doesn't invalidate earlier layers when the SHA changes.
+ARG SENTRY_RELEASE=""
+ENV SENTRY_RELEASE=${SENTRY_RELEASE}
+
 # Expose the port and run the app
 EXPOSE 8000
 CMD ["sh", "/usr/src/app/docker/container_start.sh"]
