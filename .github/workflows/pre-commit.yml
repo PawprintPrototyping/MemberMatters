@@ -16,10 +16,50 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: "3.x"
-      - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      with:
+        python-version: "3.x"
+
+    - name: Get changed files
+      id: file_changes
+      env:
+        BASE_REF: ${{ github.base_ref || github.event.before || '' }}
+        HEAD_SHA: ${{ github.sha }}
+      run: |
+        if [ -n "${BASE_REF}" ]; then
+          git fetch --deepen=100 origin "${BASE_REF}" 2>/dev/null || true
+          if [[ "${BASE_REF}" =~ ^[0-9a-f]{40}$ ]]; then
+            DIFF=$(git diff --name-only "${BASE_REF}" "${HEAD_SHA}")
+          else
+            DIFF=$(git diff --name-only "origin/${BASE_REF}" "${HEAD_SHA}")
+          fi
+        else
+          DIFF=$(git diff --name-only HEAD~1 "${HEAD_SHA}")
+        fi
+        echo "Diff between ${BASE_REF:-HEAD~1} and ${HEAD_SHA}"
+        echo "files=$( echo "$DIFF" | xargs echo )" >> $GITHUB_OUTPUT
+    
+    - name: Pre-commit cache
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
+      id: cache-pre-commit
+      with:
+        path: ~/.cache/pre-commit/
+        key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+
+    - name: Execute pre-commit
+      id: pre-commit
+      if: hashFiles('.pre-commit-config.yaml') != ''
+      continue-on-error: true
+      env:
+        SKIP: no-commit-to-branch
+        FILES: ${{ steps.file_changes.outputs.files }}
+      run: |
+        pre-commit run \
+          --color=always \
+          --show-diff-on-failure \
+          --files $FILES
+
+    - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1

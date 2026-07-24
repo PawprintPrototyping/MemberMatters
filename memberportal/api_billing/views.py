@@ -1441,9 +1441,7 @@ class StripeWebhook(StripeAPIView):
             # Stripe sends events for customers we don't track (e.g. one-off
             # charges, deleted profiles). Don't sentry-spam on these — info
             # log only, so we still have a trail without paging anyone.
-            logger.info(
-                "Webhook event for unknown stripe_customer_id; ignoring."
-            )
+            logger.info("Webhook event for unknown stripe_customer_id; ignoring.")
             return Response()
 
         except Profile.MultipleObjectsReturned as e:
