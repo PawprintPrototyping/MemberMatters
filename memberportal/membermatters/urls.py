@@ -38,7 +38,9 @@ try:
 
         sentry_sdk.init(
             release=os.environ.get("SENTRY_RELEASE", release),
-            environment=os.environ.get("SENTRY_ENVIRONMENT", os.environ.get("MM_ENV", "Development")),
+            environment=os.environ.get(
+                "SENTRY_ENVIRONMENT", os.environ.get("MM_ENV", "Development")
+            ),
             dsn=SENTRY_DSN_BACKEND,
             integrations=[DjangoIntegration()],
         )
