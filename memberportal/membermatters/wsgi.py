@@ -13,3 +13,8 @@ logging.basicConfig(stream=sys.stderr)
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "membermatters.settings")
 
 application = get_wsgi_application()
+
+# Kept in sync with asgi.py: initialise Sentry once at process startup.
+from membermatters.sentry_init import init_sentry_from_constance  # noqa: E402
+
+init_sentry_from_constance()

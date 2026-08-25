@@ -1,12 +1,53 @@
 # Getting started (Django backend)
 
 First step is to grab a copy of this repository. You will need to make sure you have python installed,
-3.7 or newer, as that's the only version it has been tested on. Make sure you also install pip so that you can install
-all the dependencies.
+3.10 or newer (3.12 is what the docker image uses). Dependencies are managed with
+[uv](https://docs.astral.sh/uv/); the resolved dependency graph lives in `uv.lock` and
+`pyproject.toml` is the source of truth for what is declared. `requirements.txt` is a
+`uv export` of the lock and is only kept as a fallback for environments without `uv`.
 
-To install python 3/pip and the requirements, run the commands below _from within this folder_.
+## uv (recommended)
 
-## Linux (Ubuntu)
+Install `uv` from https://docs.astral.sh/uv/getting-started/installation/, then from this
+folder run:
+
+```bash
+uv sync                 # runtime + dev tools
+uv sync --no-dev        # runtime deps only (matches the docker image)
+uv run python manage.py migrate
+```
+
+`uv sync` creates a `.venv/` in this folder. Activate it with `source .venv/bin/activate`
+or prefix commands with `uv run`.
+
+To add or upgrade a dependency:
+
+```bash
+uv add <package>              # adds to [project.dependencies]
+uv add --group dev <package>  # adds to the dev group
+uv lock --upgrade             # refresh the lock against upstream ranges
+```
+
+After changing the lock, regenerate the pip-compatible fallback:
+
+```bash
+uv export --no-hashes --no-dev --no-emit-project -o requirements.txt
+```
+
+## pip fallback
+
+If you can't use `uv`, the exported `requirements.txt` still works with pip. Follow the
+section below for your platform to create a virtual environment and install from it.
+
+Note that `requirements.txt` is exported with `--no-dev`, so it contains runtime
+dependencies only. The dev tooling (`black`, `pre-commit`) lives in the `dev` dependency
+group and must be installed separately:
+
+```bash
+pip3 install black pre-commit
+```
+
+### Linux (Ubuntu)
 
 Make sure you have all the common programming dependencies installed:
 
@@ -28,7 +69,7 @@ You should see `(venv) $` at your command prompt, letting you know that you’re
 deactivate
 ```
 
-## macOS
+### macOS
 
 You should install and use python3 with virtualenv on macOS. You may also need to install `mysql` via brew if you don't have it already.
 
@@ -54,15 +95,15 @@ If you're running macOS Big Sur (and/or an Apple Silicon Mac), you may need to r
 CFLAGS='-I/usr/local/opt/zlib/include -L/usr/local/opt/zlib/lib' pip3 install -r requirements.txt
 ```
 
-## Windows
+### Windows
 
 Please follow the instructions below to setup dev environment in Windows (tested in Windows 7 & 10).
 
-- Download & install Python 3.7+ from [here](https://www.python.org/downloads/)
+- Download & install Python 3.10+ from [here](https://www.python.org/downloads/)
 - CD into the cloned repository.
 - Assuming `pip` and `virtualenv` is already installed as part of the package, execute: `py -3 -m venv venv`
 - Activate the venv by running: `venv\Scripts\activate`
-- Install dependencies by running: `pip install -r requirements-win.txt`
+- Install dependencies by running: `pip install -r requirements.txt`
 - You're all set up. Follow the instructions below to start the dev server.
 
 ## Running the dev server

@@ -9,3 +9,9 @@ rules:
       # comment on the PR. All fork-supplied inputs (image name, PR number) are
       # routed through env: and validated in the workflow itself.
       - upload_docker.pr.yml
+
+  excessive-permissions:
+    ignore:
+      # Intentionally declares none, so the build job inherits the caller's
+      # grant; callers can only narrow it, never widen it to repo defaults.
+      - _build-docker.yml

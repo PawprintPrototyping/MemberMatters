@@ -16,6 +16,7 @@ import json
 from datetime import timedelta
 from multiprocessing import Process
 import logging
+from django.core.exceptions import ImproperlyConfigured
 from .constance_config import CONSTANCE_CONFIG_FIELDSETS, CONSTANCE_CONFIG
 
 logger = logging.getLogger("settings.py")
@@ -29,6 +30,7 @@ SECRET_KEY = os.environ.get(
 # Default config is for dev environments and is overwritten in prod
 DEBUG = True
 ENVIRONMENT = "Development"
+IS_PRODUCTION = False
 ALLOWED_HOSTS = ["*"]
 SESSION_COOKIE_HTTPONLY = False
 SESSION_COOKIE_SAMESITE = None
@@ -38,10 +40,27 @@ DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 # this allows the frontend dev server to talk to the dev server
 CORS_ALLOW_ALL_ORIGINS = True
 
-if os.environ.get("MM_ENV") == "Production":
-    from django.core.exceptions import ImproperlyConfigured
+# Canonical label plus the hardening switch. An unset MM_ENV means a local
+# dev run; a set-but-unrecognised value is a misconfiguration and must not
+# fall back to the permissive defaults above.
+_MM_ENV_RAW = os.environ.get("MM_ENV")
+_MM_ENV_MAP = {
+    "development": ("Development", False),
+    "dev": ("Development", False),
+    "production": ("Production", True),
+    "prod": ("Production", True),
+    "staging": ("Staging", True),
+    "stage": ("Staging", True),
+}
+_MM_ENV_KEY = ("Development" if _MM_ENV_RAW is None else _MM_ENV_RAW).strip().lower()
+if _MM_ENV_KEY not in _MM_ENV_MAP:
+    raise ImproperlyConfigured(
+        "MM_ENV must be one of Development, Production or Staging; "
+        f"got {_MM_ENV_RAW!r}."
+    )
+ENVIRONMENT, IS_PRODUCTION = _MM_ENV_MAP[_MM_ENV_KEY]
 
-    ENVIRONMENT = "Production"
+if IS_PRODUCTION:
     CORS_ALLOW_ALL_ORIGINS = False
     DEBUG = False
 
@@ -49,7 +68,9 @@ if os.environ.get("MM_ENV") == "Production":
     # are signed with this; a leaked default key means anyone can forge a
     # session for any user (including admin).
     if not os.environ.get("MM_SECRET_KEY"):
-        raise ImproperlyConfigured("MM_SECRET_KEY must be set when MM_ENV=Production.")
+        raise ImproperlyConfigured(
+            f"MM_SECRET_KEY must be set when MM_ENV={ENVIRONMENT}."
+        )
 
     # Pin ALLOWED_HOSTS to the deployment domain(s). Leaving "*" in
     # production enables Host-header attacks (cache poisoning, password
@@ -58,7 +79,7 @@ if os.environ.get("MM_ENV") == "Production":
     allowed_hosts_env = os.environ.get("MM_ALLOWED_HOSTS", "").strip()
     if not allowed_hosts_env:
         raise ImproperlyConfigured(
-            "MM_ALLOWED_HOSTS must be set when MM_ENV=Production."
+            f"MM_ALLOWED_HOSTS must be set when MM_ENV={ENVIRONMENT}."
         )
     ALLOWED_HOSTS = [h.strip() for h in allowed_hosts_env.split(",") if h.strip()]
 
@@ -131,7 +152,7 @@ TEMPLATES = [
 
 ASGI_APPLICATION = "membermatters.asgi.application"
 
-if ENVIRONMENT == "Production":
+if IS_PRODUCTION:
     if os.getenv("MM_REDIS_HOST"):
         logger.info("Using Redis for channels layer")
         CHANNEL_LAYERS = {

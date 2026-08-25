@@ -381,6 +381,34 @@ CONSTANCE_CONFIG = {
         True,
         "Send the 'your membership application has been submitted' email to the user when they finish signup. Note: the admin notification about the new applicant is sent regardless. Disable this if you don't want to promise the unenforced 7-day review window described in that email.",
     ),
+    "FORCE_SIGNUP_COMPLETION": (
+        False,
+        "Redirect new members with an unfinished signup to the membership plan screen until they complete it. Members waiting only on their first invoice are exempt. Enable this to prevent partial-signup members from exploring the portal before signup is finalised.",
+    ),
+    "ENABLE_REGISTRATION": (
+        True,
+        "Allow new members to sign up through the portal. Disable to keep the login screen but reject anyone attempting to register.",
+    ),
+    "REGISTRATION_DISABLED_MESSAGE": (
+        "",
+        "Message shown on the signup form when ENABLE_REGISTRATION is off. Leave blank for a generic message.",
+    ),
+    "REQUIRE_SCREEN_NAME": (
+        False,
+        "Require members to set a public screen name during signup. Off means the screen name field is optional.",
+    ),
+    "MEMBER_CAN_EDIT_BASIC_DETAILS": (
+        True,
+        "Allow members to edit their own name, phone, address and similar basic profile fields. Turn off to lock profile editing to admins only.",
+    ),
+    "MEMBER_CAN_EDIT_EMAIL": (
+        False,
+        "Allow members to change their own email address. Requires MEMBER_CAN_EDIT_BASIC_DETAILS. Off keeps email changes admin-only, which is safer because email is the account recovery channel.",
+    ),
+    "PROFILE_DEFAULT_PHONE_REGION": (
+        "US",
+        "ISO 3166-1 alpha-2 country code (e.g. US, AU, GB) used to parse phone numbers that lack a country code into E.164. Set this to the country most of your members dial from.",
+    ),
     "ENABLE_PROXY_VOTING": (False, "Enables the proxy voting management feature."),
     "ENABLE_WEBCAMS": (
         False,
@@ -532,6 +560,7 @@ CONSTANCE_CONFIG_FIELDSETS = OrderedDict(
                 "SIGNUP_PRIVACY_POLICY_TEXT",
                 "TERMS_ACCEPTANCE_CARDS",
                 "ENABLE_MEMBERSHIP_APPLICATION_USER_EMAIL",
+                "REQUIRE_SCREEN_NAME",
                 "FORCE_SIGNUP_COMPLETION",
             ),
         ),

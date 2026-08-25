@@ -9,25 +9,33 @@ on:
 
 permissions: {}
 
+# One build per PR: without this, rapid pushes race to tag the same
+# untrusted-pr-image-* name and the slowest run can win.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: pawprintprototyping/membermatters
 
 jobs:
-  build-docker:
+  # Compute the PR-specific tag and metadata so we can feed them into the
+  # shared reusable build workflow. Kept separate from the build itself so
+  # the reusable workflow doesn't need to know about pull_request-specific
+  # context (head_ref, event.number, fork owner).
+  prepare:
+    name: Prepare PR image metadata
     runs-on: ubuntu-latest
     permissions:
       contents: read
     outputs:
-      branch: ${{ steps.extract_branch.outputs.branch }}
-      repoowner: ${{ steps.extract_repo_owner.outputs.repoowner }}
-      imagename: ${{ steps.extract_image_name.outputs.imagename }}
+      imagename: ${{ steps.imagename.outputs.imagename }}
+      metadata: ${{ steps.metadata.outputs.metadata }}
+      commit-sha: ${{ steps.sha.outputs.full }}
     steps:
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
-
       - name: Extract branch name
-        id: extract_branch
+        id: branch
         env:
           HEAD_REF: ${{ github.head_ref }}
           REF: ${{ github.ref }}
@@ -37,7 +45,7 @@ jobs:
           echo "branch=${raw//\//-}" >> "$GITHUB_OUTPUT"
 
       - name: Extract repo owner
-        id: extract_repo_owner
+        id: owner
         env:
           HEAD_OWNER: ${{ github.event.pull_request.head.repo.owner.login }}
         shell: bash
@@ -45,49 +53,49 @@ jobs:
           echo "repoowner=${HEAD_OWNER//\//-}" >> "$GITHUB_OUTPUT"
 
       - name: Generate image name
-        id: extract_image_name
+        id: imagename
         env:
-          OWNER: ${{ steps.extract_repo_owner.outputs.repoowner }}
-          BRANCH: ${{ steps.extract_branch.outputs.branch }}
+          OWNER: ${{ steps.owner.outputs.repoowner }}
+          BRANCH: ${{ steps.branch.outputs.branch }}
         shell: bash
         run: |
           echo "imagename=${REGISTRY}/${IMAGE_NAME}:untrusted-pr-image-${OWNER}-${BRANCH}" >> "$GITHUB_OUTPUT"
 
-      - name: Save PR number and branch/image name
-        env:
-          PR_NUMBER: ${{ github.event.number }}
-          BRANCH: ${{ steps.extract_branch.outputs.branch }}
-          PR_IMAGE_NAME: ${{ steps.extract_image_name.outputs.imagename }}
-        shell: bash
-        run: |
-          mkdir -p ./pr
-          printf '%s' "$PR_NUMBER" > ./pr/prnumber
-          printf '%s' "$BRANCH" > ./pr/branchname
-          printf '%s' "$PR_IMAGE_NAME" > ./pr/imagename
-
-      - name: Compute short SHA
+      - name: Resolve commit SHA
         id: sha
         env:
-          # For pull_request events, github.sha points at the merge
-          # commit GitHub synthesises. The PR head SHA is what a
-          # reviewer checks out, so prefer it when available.
+          # For pull_request events, github.sha points at the merge commit
+          # GitHub synthesises. The PR head SHA is what a reviewer would
+          # actually check out, so prefer it when available.
           FULL_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         shell: bash
-        run: echo "short=${FULL_SHA::7}" >> "$GITHUB_OUTPUT"
+        run: echo "full=${FULL_SHA}" >> "$GITHUB_OUTPUT"
 
-      - name: Build pr image
-        id: docker_build
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
-        with:
-          tags: ${{ steps.extract_image_name.outputs.imagename }}
-          outputs: type=docker,dest=./pr/untrusted-pr-image.tar
-          file: docker/Dockerfile
-          platforms: linux/amd64
-          build-args: |
-            SENTRY_RELEASE=${{ steps.sha.outputs.short }}
+      - name: Build artifact metadata JSON
+        id: metadata
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+          BRANCH: ${{ steps.branch.outputs.branch }}
+          IMG: ${{ steps.imagename.outputs.imagename }}
+        shell: bash
+        run: |
+          metadata=$(jq -cn \
+            --arg pr "$PR_NUMBER" \
+            --arg branch "$BRANCH" \
+            --arg image "$IMG" \
+            '{prnumber: $pr, branchname: $branch, imagename: $image}')
+          echo "metadata=$metadata" >> "$GITHUB_OUTPUT"
 
-      - name: Upload pr image as artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: pr
-          path: ./pr/
+  build:
+    needs: prepare
+    uses: ./.github/workflows/_build-docker.yml
+    # Read-only: upload_docker.pr.yml does the push, via workflow_run.
+    permissions:
+      contents: read
+    with:
+      platforms: linux/amd64
+      push: false
+      tags: ${{ needs.prepare.outputs.imagename }}
+      commit-sha: ${{ needs.prepare.outputs.commit-sha }}
+      artifact-name: pr
+      artifact-metadata: ${{ needs.prepare.outputs.metadata }}

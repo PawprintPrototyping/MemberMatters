@@ -104,7 +104,7 @@ jobs:
       - name: Load PR Image
         shell: bash
         run: |
-          docker load --input ./untrusted-pr-image.tar
+          docker load --input ./image.tar
           docker image ls -a
 
       - name: Login to GitHub Container Registry

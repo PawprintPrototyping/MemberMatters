@@ -64,7 +64,7 @@ class AccessDeviceConsumer(JsonWebsocketConsumer):
         )
 
         # Set the connected_at and last_seen times
-        self.connected_at = datetime.datetime.now()
+        self.connected_at = timezone.now()
         self.last_seen = self.connected_at
 
         if created:
@@ -98,7 +98,7 @@ class AccessDeviceConsumer(JsonWebsocketConsumer):
             logger.debug(
                 f"Got message from {self.device.type} ({self.device.serial_number}): {json.dumps(content)}",
             )
-            self.last_seen = datetime.datetime.now()
+            self.last_seen = timezone.now()
             self.device.checkin()
 
             if content.get("command") == "authenticate":

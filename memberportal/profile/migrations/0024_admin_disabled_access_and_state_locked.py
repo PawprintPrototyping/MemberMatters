@@ -5,8 +5,14 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
+    # Renumbered from 0023_*; without this, DBs that recorded the old name
+    # re-run the AddFields below and fail on duplicate columns.
+    replaces = [
+        ("profile", "0023_admin_disabled_access_and_state_locked"),
+    ]
+
     dependencies = [
-        ("profile", "0022_screen_name_unique"),
+        ("profile", "0023_alter_profile_phone"),
     ]
 
     operations = [

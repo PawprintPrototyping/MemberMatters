@@ -1,0 +1,19 @@
+# Build overlay, kept out of docker-compose.yml so a plain `docker compose up`
+# can only ever pull the published image, never silently build local code.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml build
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up --build
+
+x-build: &app-build
+  context: ..
+  dockerfile: docker/Dockerfile
+
+services:
+  mm-webapp:
+    build: *app-build
+
+  mm-celery-worker:
+    build: *app-build
+
+  mm-celery-beat:
+    build: *app-build

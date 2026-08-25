@@ -1,8 +1,7 @@
 from django.db import models, transaction
 from django.utils import timezone
-from datetime import timedelta, datetime
+from datetime import timedelta
 import pytz
-from django.utils.timezone import make_aware
 from django.contrib.auth.models import (
     BaseUserManager,
     AbstractBaseUser,
@@ -394,8 +393,10 @@ class Profile(ExportModelOperationsMixin("profile"), models.Model):
     digital_id_token = models.UUIDField(
         "Digital ID Token", default=uuid.uuid4, null=True, blank=True
     )
+    # `timezone.now` (not `datetime.now`) so the default matches
+    # USE_TZ=True and doesn't emit RuntimeWarnings on new-Profile creates.
     digital_id_token_expire = models.DateTimeField(
-        editable=False, default=datetime.now, null=True, blank=True
+        editable=False, default=timezone.now, null=True, blank=True
     )
     created = models.DateTimeField(editable=False)
     modified = models.DateTimeField()
@@ -487,17 +488,16 @@ class Profile(ExportModelOperationsMixin("profile"), models.Model):
 
     def generate_digital_id_token(self):
         self.digital_id_token = uuid.uuid4()
-        self.digital_id_token_expire = make_aware(
-            datetime.now() + timedelta(minutes=10)
-        )
+        self.digital_id_token_expire = timezone.now() + timedelta(minutes=10)
         self.save()
 
         return self.digital_id_token
 
     def validate_digital_id_token(self, token: str):
-        if make_aware(
-            datetime.now()
-        ) < self.digital_id_token_expire and self.digital_id_token == uuid.UUID(token):
+        if (
+            timezone.now() < self.digital_id_token_expire
+            and self.digital_id_token == uuid.UUID(token)
+        ):
             return True
 
         else:

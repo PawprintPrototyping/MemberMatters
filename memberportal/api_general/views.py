@@ -11,9 +11,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction, IntegrityError
 from django.utils import timezone
-from django.utils.timezone import make_aware
 import datetime
-from pytz import UTC as utc
 from profile.models import User, Profile
 from profile.phone import to_e164
 
@@ -682,7 +680,7 @@ class Kiosks(APIView):
 
         except Kiosk.DoesNotExist:
             kiosk = Kiosk.objects.create(
-                last_seen=make_aware(datetime.datetime.now()),
+                last_seen=timezone.now(),
                 kiosk_id=body.get("kioskId"),
                 name=body.get("kioskId"),
                 play_theme=False,
@@ -1145,9 +1143,10 @@ class VerifyEmail(APIView):
             )
 
         user = verification_token.user
-        is_fresh = utc.localize(
-            datetime.datetime.now()
-        ) < verification_token.creation_date + datetime.timedelta(hours=24)
+        is_fresh = (
+            timezone.now()
+            < verification_token.creation_date + datetime.timedelta(hours=24)
+        )
 
         with transaction.atomic():
             # Compare-and-delete: only one concurrent request can claim

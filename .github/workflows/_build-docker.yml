@@ -1,0 +1,154 @@
+# Reusable workflow that builds (and optionally pushes) the MemberMatters
+# Docker image. All event-specific docker build workflows should call this
+# via `uses:` rather than repeating the buildx/login/build-push steps.
+#
+# No `permissions:` here: a called workflow can only narrow the caller's token,
+# never widen it, so the build job inherits the calling job's grant instead.
+# Callers declare `contents: read`, plus `packages: write` when push is true.
+name: Reusable Docker Build
+
+on:
+  workflow_call:
+    inputs:
+      platforms:
+        description: "Comma-separated docker platforms (e.g. linux/amd64,linux/arm64)"
+        type: string
+        default: linux/amd64
+      push:
+        description: "Push the built image to the container registry"
+        type: boolean
+        default: false
+      tags:
+        description: "Comma-separated image tags to build"
+        type: string
+        required: true
+      commit-sha:
+        description: "Full commit SHA to embed as SENTRY_RELEASE. Defaults to github.sha."
+        type: string
+        default: ""
+      artifact-name:
+        description: "If set, save the image tarball plus metadata as an artifact with this name"
+        type: string
+        default: ""
+      artifact-metadata:
+        description: "JSON object of {filename: content} to write alongside the image tarball in the artifact"
+        type: string
+        default: "{}"
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build:
+    name: Build image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reject unsupported input combination
+        if: ${{ inputs.push && inputs.artifact-name != '' }}
+        shell: bash
+        run: |
+          echo "push: true and artifact-name are mutually exclusive - only the" >&2
+          echo "artifact build writes image.tar, so the upload would be empty." >&2
+          exit 1
+
+      - name: Reject no-op invocation
+        if: ${{ !inputs.push && inputs.artifact-name == '' }}
+        shell: bash
+        run: |
+          echo "Nothing to do: set push: true, or artifact-name to save a tarball." >&2
+          exit 1
+
+      # Resolved before checkout so the ref is validated as hex before it is
+      # handed to git, and so the image and SENTRY_RELEASE share one commit.
+      - name: Resolve commit SHA
+        id: sha
+        env:
+          FULL_SHA: ${{ inputs.commit-sha != '' && inputs.commit-sha || github.sha }}
+        shell: bash
+        run: |
+          if [[ ! "$FULL_SHA" =~ ^[0-9a-f]{7,40}$ ]]; then
+            echo "Refusing non-hex commit SHA: $FULL_SHA" >&2
+            exit 1
+          fi
+          echo "full=${FULL_SHA}" >> "$GITHUB_OUTPUT"
+          echo "short=${FULL_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ steps.sha.outputs.full }}
+          persist-credentials: false
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      - name: Log in to container registry
+        if: ${{ inputs.push }}
+        uses: docker/login-action@abd2ef45e78c5afb21d64d4ca52ee8550d9572c7 # v4.5.1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare artifact directory
+        if: ${{ inputs.artifact-name != '' }}
+        shell: bash
+        run: mkdir -p ./artifact-out
+
+      - name: Write artifact metadata
+        if: ${{ inputs.artifact-name != '' && inputs.artifact-metadata != '{}' }}
+        env:
+          METADATA_JSON: ${{ inputs.artifact-metadata }}
+        shell: bash
+        run: |
+          # Parse metadata into filename\tcontent pairs. Reject any filename
+          # that isn't a safe token so a caller can't smuggle in a path
+          # traversal or shell metacharacter through this input.
+          echo "$METADATA_JSON" | jq -c 'to_entries[]' | while read -r pair; do
+            name=$(printf '%s' "$pair" | jq -r '.key')
+            value=$(printf '%s' "$pair" | jq -r '.value')
+            if [[ ! "$name" =~ ^[A-Za-z0-9._-]+$ ]]; then
+              echo "Refusing artifact metadata filename with unsafe characters: $name" >&2
+              exit 1
+            fi
+            printf '%s' "$value" > "./artifact-out/$name"
+          done
+
+      - name: Build and push image
+        if: ${{ inputs.push }}
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: ${{ inputs.platforms }}
+          push: true
+          tags: ${{ inputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            SENTRY_RELEASE=${{ steps.sha.outputs.short }}
+
+      - name: Build image to artifact
+        if: ${{ !inputs.push && inputs.artifact-name != '' }}
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: ${{ inputs.platforms }}
+          push: false
+          tags: ${{ inputs.tags }}
+          outputs: type=docker,dest=./artifact-out/image.tar
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            SENTRY_RELEASE=${{ steps.sha.outputs.short }}
+
+      - name: Upload artifact
+        if: ${{ inputs.artifact-name != '' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ./artifact-out/

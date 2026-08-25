@@ -1,7 +1,89 @@
+# Patterns here are matched against context-root-relative paths, and `*` does
+# not cross `/`. So a bare `.venv` only ever matches a root-level `.venv` --
+# anything that can appear in a subdirectory needs a `**/` prefix. Patterns
+# that are deliberately root-only (VCS metadata, top-level docs) are left
+# unprefixed and called out below.
+
+# VCS + IDE
 .git
-venv
-frontend/node_modules
-frontend/dist
-frontend/src-*
+.github
+.gitignore
+.gitattributes
+**/.husky
+**/.idea
+**/.vscode
+**/*.code-workspace
+
+# Python
+**/__pycache__
+**/*.py[cod]
+**/*$py.class
+**/.venv
+**/venv
+env/
+ENV/
+memberportal/env
+memberportal/ENV
+**/*.egg-info
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.coverage
+**/.coverage.*
+**/htmlcov
+**/.tox
+**/.nox
+
+# Frontend
+**/node_modules
+src-frontend/dist
+src-frontend/.quasar
+src-frontend/.vite
+src-frontend/src-capacitor/ios
+src-frontend/src-capacitor/android
+src-frontend/src-electron/icons
+src-frontend/.eslintcache
+**/*.tsbuildinfo
+
+# Django-generated at build time (the Dockerfile runs collectstatic itself).
+# membermatters/static is the real STATIC_ROOT (see settings.py STATIC_ROOT);
+# the other two are legacy/dev locations kept out for good measure.
+memberportal/membermatters/static
+memberportal/static
+memberportal/media
+memberportal/docker_dev
+
+# Secrets and local dev artefacts. `**/.env` covers docker/.env, which holds
+# MM_SECRET_KEY -- it must never reach the image, since COPY docker/ would
+# otherwise bake the JWT signing key in. `.env.example` is not matched.
+**/.env
+**/.env.local
+**/dev.env
+**/env.list
+**/*.pem
 **/*.sqlite3
+**/*.sqlite3.bak
 **/*.log
+
+# OS / editor cruft
+**/.DS_Store
+**/Thumbs.db
+**/*.swp
+**/*~
+
+# CI scratch dir for the PR image tarball, written inside the build context.
+artifact-out
+
+# Docs, screenshots, examples - not shipped in the image
+docs
+screenshots
+
+# Root-level markdown / metadata not needed at runtime. Intentionally
+# root-anchored so nested docs (e.g. memberportal/README.md) are unaffected.
+CHANGELOG.md
+CODE_OF_CONDUCT.md
+LICENSE
+README.md
+SECURITY.md
+CNAME
+_config.yml

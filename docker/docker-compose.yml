@@ -1,4 +1,5 @@
-version: "3"
+x-redis-url: &redis-url "${MM_REDIS_URL:-redis://mm-redis:6379/0}"
+
 services:
   mm-postgres:
     image: postgres:15.3-alpine
@@ -26,13 +27,14 @@ services:
 
   # MemberMatters
   mm-webapp:
-    image: membermatters/membermatters
+    image: "${MM_IMAGE:-membermatters/membermatters}"
     restart: always
     environment:
-      MM_ENV: "Production"
-      MM_SECRET_KEY: "CHANGE_ME"
+      MM_ENV: "${MM_ENV:-Production}"
+      MM_SECRET_KEY: "${MM_SECRET_KEY}"
+      MM_ALLOWED_HOSTS: "${MM_ALLOWED_HOSTS}"
       MM_USE_POSTGRES: True
-      MM_REDIS_HOST: "redis://mm-redis:6379/0"
+      MM_REDIS_HOST: *redis-url
     ports:
       - "8000:8000"
     depends_on:
@@ -46,26 +48,30 @@ services:
 
   # MemberMatters Celery Worker
   mm-celery-worker:
-    image: membermatters/membermatters
+    image: "${MM_IMAGE:-membermatters/membermatters}"
     restart: always
     environment:
-      MM_ENV: "Production"
+      MM_ENV: "${MM_ENV:-Production}"
+      MM_SECRET_KEY: "${MM_SECRET_KEY}"
+      MM_ALLOWED_HOSTS: "${MM_ALLOWED_HOSTS}"
       MM_USE_POSTGRES: True
       MM_RUN_MODE: "celery_worker"
-      MM_REDIS_HOST: "redis://mm-redis:6379/0"
+      MM_REDIS_HOST: *redis-url
     depends_on:
       - mm-webapp
       - mm-redis
 
   # MemberMatters Celery Beat
   mm-celery-beat:
-    image: membermatters/membermatters
+    image: "${MM_IMAGE:-membermatters/membermatters}"
     restart: always
     environment:
-      MM_ENV: "Production"
+      MM_ENV: "${MM_ENV:-Production}"
+      MM_SECRET_KEY: "${MM_SECRET_KEY}"
+      MM_ALLOWED_HOSTS: "${MM_ALLOWED_HOSTS}"
       MM_USE_POSTGRES: True
       MM_RUN_MODE: "celery_beat"
-      MM_REDIS_HOST: "redis://mm-redis:6379/0"
+      MM_REDIS_HOST: *redis-url
     depends_on:
       - mm-webapp
       - mm-celery-worker
@@ -75,7 +81,7 @@ services:
     image: danihodovic/celery-exporter
     restart: always
     environment:
-      CE_BROKER_URL: "redis://mm-redis:6379/0"
+      CE_BROKER_URL: *redis-url
     depends_on:
       - mm-celery-worker
       - mm-redis

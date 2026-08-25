@@ -1,0 +1,73 @@
+# Python dependency manifest for the MemberMatters Django backend.
+#
+# Managed with `uv`. The frozen resolution lives in `uv.lock`; the docker
+# build and CI both rely on that lock so runtime and CI resolve identically.
+#
+# Common workflows:
+#   uv sync                  # install runtime + dev groups into .venv/
+#   uv sync --no-dev         # runtime only (what the docker image uses)
+#   uv add <pkg>             # add a runtime dependency and refresh the lock
+#   uv add --group dev <pkg> # add a dev-only tool (linters, hooks)
+#   uv lock --upgrade        # refresh the lock against upstream ranges
+#   uv export --no-hashes --no-dev -o requirements.txt
+#                            # regenerate the pip-compatible fallback
+[project]
+name = "membermatters"
+# Inert placeholder: uv requires the field, but nothing reads it. The real
+# release version lives in the repo-root package.json - don't mirror it here.
+version = "0.0.0"
+description = "MemberMatters backend"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "django~=3.2.13",
+    "requests~=2.32.3",
+    "stripe~=9.8.0",
+    "humanize~=4.9.0",
+    "django-constance~=2.9.0",
+    "django-picklefield~=3.2",
+    "django-cors-headers~=4.3.1",
+    "djangorestframework==3.15.1",
+    "djangorestframework-simplejwt==5.3.1",
+    "django-csp~=3.8",
+    "sentry-sdk==2.3.1",
+    "mysqlclient~=2.2.4",
+    "mailchimp-marketing",
+    "channels~=3.0.4",
+    "daphne>=3.0,<4.2",
+    "zeroconf~=0.132.2",
+    "postmarker~=1.0",
+    "channels_redis~=3.4.0",
+    "ics~=0.7.2",
+    "python_http_client~=3.3.7",
+    "pwned-passwords-django~=2.1",
+    "celery~=5.4.0",
+    "django-celery-results~=2.5.1",
+    "django-celery-beat~=2.6.0",
+    "redis~=4.3.1",
+    "twilio~=9.1.0",
+    "phonenumberslite~=9.0.30",
+    "django-prometheus==2.3.1",
+    "psycopg2-binary~=2.9.9",
+    "django-oidc-provider~=0.8.2",
+    "djangorestframework-api-key~=3.0.0",
+    "prometheus-client~=0.20.0",
+    "python-dateutil~=2.9.0",
+    "django-import-export~=3.3.9",
+    "nh3~=0.3.5",
+    "pillow~=10.4",
+]
+
+[dependency-groups]
+dev = [
+    "black==25.1.0",
+    "pre-commit==3.7.1",
+]
+
+# The mailchimp-marketing package is only published to a git repo. Pin the
+# source here so uv resolves it deterministically.
+[tool.uv.sources]
+mailchimp-marketing = { git = "https://github.com/mailchimp/mailchimp-marketing-python.git" }
+
+# Not a distributable package, just an application manifest.
+[tool.uv]
+package = false
