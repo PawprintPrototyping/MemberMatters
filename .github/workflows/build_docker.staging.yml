@@ -40,7 +40,7 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd ~/MemberMatters/docker
+            cd /datadrive/compose/membermatters
             docker compose pull mm-staging
             docker compose up -d mm-staging
             docker image prune -a -f

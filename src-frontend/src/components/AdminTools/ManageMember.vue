@@ -1,8 +1,8 @@
 <template>
   <div class="">
     <h3 class="q-mt-none q-mb-md">
-      {{ profileForm.firstName }} {{ profileForm.lastName }} ({{
-        profileForm.screenName
+      {{ selectedMember.name.first }} {{ selectedMember.name.last }} ({{
+        selectedMember.screenName
       }})
       <q-icon
         v-if="selectedMember.stateLocked"
@@ -110,10 +110,13 @@ export default defineComponent({
       return icons;
     },
     selectedMember(): MemberProfile {
-      if (this.members) {
-        return (this.members as MemberProfile[]).find(
+      if (this.members && (this.members as MemberProfile[]).length) {
+        const match = (this.members as MemberProfile[]).find(
           (member) => member.id === this.member.id
-        ) as MemberProfile;
+        );
+        if (match) {
+          return match;
+        }
       }
       return this.member as MemberProfile;
     },
