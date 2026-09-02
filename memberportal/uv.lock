@@ -834,6 +834,15 @@ wheels = [
 ]
 
 [[package]]
+name = "docuseal"
+version = "1.0.9"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9f/98/a97c85ea17abf3efc407f62c6dc26ca88073e973cb15ddcbf104010c9dbd/docuseal-1.0.9.tar.gz", hash = "sha256:6489abc352d12cfd3f95521cfbc884c4b01619d7e71d3060ed262a7be848c943", size = 9479, upload-time = "2026-07-17T14:16:30.685Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/cd/2a/33d635fb5e70f5b837046abefd173087cdbf60c2f831813a48544ce7ee68/docuseal-1.0.9-py3-none-any.whl", hash = "sha256:99ab08e31e29b597873fbb675082877e71bc2c0dcf0610a4b559dc276297cf19", size = 7421, upload-time = "2026-07-17T14:16:29.604Z" },
+]
+
+[[package]]
 name = "et-xmlfile"
 version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1151,6 +1160,7 @@ dependencies = [
     { name = "djangorestframework" },
     { name = "djangorestframework-api-key" },
     { name = "djangorestframework-simplejwt" },
+    { name = "docuseal" },
     { name = "humanize" },
     { name = "ics" },
     { name = "mailchimp-marketing" },
@@ -1197,6 +1207,7 @@ requires-dist = [
     { name = "djangorestframework", specifier = "==3.15.1" },
     { name = "djangorestframework-api-key", specifier = "~=3.0.0" },
     { name = "djangorestframework-simplejwt", specifier = "==5.3.1" },
+    { name = "docuseal", specifier = "~=1.0.9" },
     { name = "humanize", specifier = "~=4.9.0" },
     { name = "ics", specifier = "~=0.7.2" },
     { name = "mailchimp-marketing", git = "https://github.com/mailchimp/mailchimp-marketing-python.git" },

@@ -461,6 +461,8 @@ class Profile(ExportModelOperationsMixin("profile"), models.Model):
     subscription_first_created = models.DateTimeField(
         default=None, blank=True, null=True, editable=False
     )
+    memberdoc_id = models.IntegerField(default=None, blank=True, null=True)
+    memberdoc_url = models.CharField(max_length=255, blank=True, null=True, default="")
 
     BILLING_METHODS = (
         ("card", "Card"),
@@ -1016,7 +1018,7 @@ class Profile(ExportModelOperationsMixin("profile"), models.Model):
         Returns a user's profile with a basic amount of info.
         :return: {}
         """
-        return {
+        profile = {
             "id": self.user.id,
             "admin": self.user.is_staff,
             "email": self.user.email,
@@ -1065,6 +1067,11 @@ class Profile(ExportModelOperationsMixin("profile"), models.Model):
             "stateLocked": self.state_locked,
             "adminDisabledAccess": self.admin_disabled_access,
         }
+        if config.ENABLE_DOCUSEAL_INTEGRATION:
+            profile["memberdocsLink"] = (
+                config.DOCUSEAL_URL + "/submissions/" + str(self.memberdoc_id)
+            )  # use internal submission id instead of embed_url
+        return profile
 
     def get_access_permissions(self, ignore_user_state=False):
         """
@@ -1158,7 +1165,9 @@ class Profile(ExportModelOperationsMixin("profile"), models.Model):
         # induction: 0 disables the recurring requirement but does not
         # let first-timers skip.
         induction_enabled = (
-            config.CANVAS_INDUCTION_ENABLED or config.MOODLE_INDUCTION_ENABLED
+            config.CANVAS_INDUCTION_ENABLED
+            or config.MOODLE_INDUCTION_ENABLED
+            or config.ENABLE_DOCUSEAL_INTEGRATION
         )
         last_inducted = self.last_induction
 

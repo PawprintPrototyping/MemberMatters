@@ -55,6 +55,7 @@ dependencies = [
     "django-import-export~=3.3.9",
     "nh3~=0.3.5",
     "pillow~=10.4",
+    "docuseal~=1.0.9",
 ]
 
 [dependency-groups]

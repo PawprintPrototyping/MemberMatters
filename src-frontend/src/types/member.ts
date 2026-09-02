@@ -44,6 +44,7 @@ export const MemberProfileSchema = z.object({
   subscriptionStatus: SubscriptionStateSchema,
   stateLocked: z.boolean(),
   adminDisabledAccess: z.boolean(),
+  memberdocsLink: z.string().optional(),
 });
 
 export type MemberProfile = z.infer<typeof MemberProfileSchema>;

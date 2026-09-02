@@ -498,6 +498,22 @@ CONSTANCE_CONFIG = {
         True,
         "Enable the Recent Swipes page for regular members. Admins can always see it.",
     ),
+    "ENABLE_DOCUSEAL_INTEGRATION": (
+        False,
+        "Use DocuSeal to manage user agreements",
+    ),
+    "DOCUSEAL_API_KEY": (
+        "API_KEY",
+        "Your DocuSeal API key",
+    ),
+    "DOCUSEAL_URL": (
+        "https://api.docuseal.com",
+        "URL of the DocuSeal instance in use",
+    ),
+    "DOCUSEAL_TEMPLATE_ID": (
+        1,
+        "DocuSeal template ID to send as part of induction",
+    ),
 }
 
 CONSTANCE_CONFIG_FIELDSETS = OrderedDict(
@@ -710,6 +726,15 @@ CONSTANCE_CONFIG_FIELDSETS = OrderedDict(
                 "DISCORD_INTERLOCK_WEBHOOK",
                 "DISCORD_MEMBERBUCKS_PURCHASE_WEBHOOK",
                 "DISCORD_REPORT_ISSUE_WEBHOOK",
+            ),
+        ),
+        (
+            "DocuSeal Integration",
+            (
+                "ENABLE_DOCUSEAL_INTEGRATION",
+                "DOCUSEAL_URL",
+                "DOCUSEAL_API_KEY",
+                "DOCUSEAL_TEMPLATE_ID",
             ),
         ),
         (
