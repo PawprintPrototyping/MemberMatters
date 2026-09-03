@@ -30,15 +30,23 @@ def create_submission_for_subscription(profile):
                 }
             ],
         }
-        logger.debug("Submitting to Docuseal with:\n{}".format(json.dumps(data)))
 
-        # there seem to be inconsistencies between the docuseal package's expected backend api and what is implemented by the docuseal
-        # application (at least with the opensource option as of writing).  Opting to use requests package as a workaround.
+        body = json.dumps(data)
+        logger.info("Submitting to Docuseal with body:\n{}".format(body))
+
         response = requests.post(
             url=config.DOCUSEAL_URL + "/api/submissions",
-            headers={"X-Auth-Token": config.DOCUSEAL_API_KEY},
-            json=data,
+            headers={
+                "X-Auth-Token": config.DOCUSEAL_API_KEY,
+                "Content-Type": "application/json",
+            },
+            data=body,
         )
+
+        if not response.ok:
+            raise ValueError(
+                "DocuSeal returned {}: {}".format(response.status_code, response.text)
+            )
         res = response.json()[0]
         logger.debug("Got response:\n{}".format(res))
     except Exception as ex:
