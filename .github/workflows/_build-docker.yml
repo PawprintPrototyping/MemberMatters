@@ -46,10 +46,11 @@ on:
         description: "GlitchTip project slug (required when upload-sourcemaps is true)."
         type: string
         default: ""
+      glitchtip-url:
+        description: "Base URL of the GlitchTip instance (public, safe as a variable). Required when upload-sourcemaps is true."
+        type: string
+        default: ""
     secrets:
-      GLITCHTIP_URL:
-        description: "Base URL of the GlitchTip instance. Required when upload-sourcemaps is true."
-        required: false
       GLITCHTIP_AUTH_TOKEN:
         description: "GlitchTip API auth token. Required when upload-sourcemaps is true."
         required: false
@@ -186,7 +187,7 @@ jobs:
           missing=""
           [ -n "${{ inputs.glitchtip-org }}" ] || missing="$missing glitchtip-org"
           [ -n "${{ inputs.glitchtip-project }}" ] || missing="$missing glitchtip-project"
-          [ -n "${{ secrets.GLITCHTIP_URL }}" ] || missing="$missing GLITCHTIP_URL"
+          [ -n "${{ inputs.glitchtip-url }}" ] || missing="$missing glitchtip-url"
           [ -n "${{ secrets.GLITCHTIP_AUTH_TOKEN }}" ] || missing="$missing GLITCHTIP_AUTH_TOKEN"
           if [ -n "$missing" ]; then
             echo "upload-sourcemaps is true but these are unset:$missing" >&2
@@ -248,7 +249,7 @@ jobs:
       - name: Inject and upload source maps
         working-directory: src-frontend
         env:
-          SENTRY_URL: ${{ secrets.GLITCHTIP_URL }}
+          SENTRY_URL: ${{ inputs.glitchtip-url }}
           SENTRY_AUTH_TOKEN: ${{ secrets.GLITCHTIP_AUTH_TOKEN }}
         run: |
           glitchtip-cli sourcemaps inject ./dist

@@ -27,8 +27,8 @@ jobs:
       upload-sourcemaps: true
       glitchtip-org: pawprint-prototyping
       glitchtip-project: membermatters-frontend
+      glitchtip-url: ${{ vars.GLITCHTIP_URL }}
     secrets:
-      GLITCHTIP_URL: ${{ secrets.GLITCHTIP_URL }}
       GLITCHTIP_AUTH_TOKEN: ${{ secrets.GLITCHTIP_AUTH_TOKEN }}
 
   deploy:

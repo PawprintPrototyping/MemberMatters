@@ -134,6 +134,7 @@ import { mapGetters } from 'vuex';
 import icons from '@icons';
 import dayjs from 'dayjs';
 import MembershipStateBanner from '@components/MembershipStateBanner.vue';
+import { enabledSignupSteps, signupStepStatus } from '../utils/signupSteps';
 
 export default {
   name: 'MembershipStatusCard',
