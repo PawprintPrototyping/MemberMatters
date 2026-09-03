@@ -16,7 +16,7 @@
 # Enable BuildKit before building (docker >= 23 or DOCKER_BUILDKIT=1).
 
 ARG PYTHON_VERSION=3.12
-ARG NODE_VERSION=22.2.0
+ARG NODE_VERSION=24.20.0
 ARG UV_VERSION=0.11.8
 
 ##############################################################################
