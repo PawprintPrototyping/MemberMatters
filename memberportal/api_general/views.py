@@ -72,6 +72,7 @@ class GetConfig(APIView):
                 "memberCanEnterAccessCard": config.MEMBER_CAN_ENTER_ACCESS_CARD,
                 "postInductionUrl": config.POST_INDUCTION_URL,
                 "collectVehicleRegistrationPlate": config.COLLECT_VEHICLE_REGISTRATION_PLATE,
+                "collectPhoneNumber": config.COLLECT_PHONE_NUMBER,
                 "requirePrivacyConsent": config.SIGNUP_REQUIRE_PRIVACY_CONSENT,
                 "privacyPolicyUrl": config.SIGNUP_PRIVACY_POLICY_URL,
                 "privacyPolicyText": config.SIGNUP_PRIVACY_POLICY_TEXT,
@@ -520,7 +521,9 @@ class ProfileDetail(generics.GenericAPIView):
         # append induction link(s) if user has not been inducted
         response["inductionLink"] = []
         if p.last_induction is None:
-            if config.MOODLE_INDUCTION_ENABLED or config.CANVAS_INDUCTION_ENABLED:
+            if (
+                config.MOODLE_INDUCTION_ENABLED or config.CANVAS_INDUCTION_ENABLED
+            ) and config.INDUCTION_ENROL_LINK:
                 response["inductionLink"].append(config.INDUCTION_ENROL_LINK)
 
             if config.ENABLE_DOCUSEAL_INTEGRATION:
@@ -536,7 +539,7 @@ class ProfileDetail(generics.GenericAPIView):
                         ):
                             p.update_last_induction()
                             response["lastInduction"] = p.last_induction
-                    elif state != "declined":
+                    elif state != "declined" and p.memberdoc_url:
                         response["inductionLink"].append(p.memberdoc_url)
                     # remainder state is "declined"
 
@@ -585,7 +588,7 @@ class ProfileDetail(generics.GenericAPIView):
         # Normalise the phone number to E.164 (only editable when
         # can_edit_basic, so only validated then).
         phone = ""
-        if can_edit_basic:
+        if can_edit_basic and config.COLLECT_PHONE_NUMBER:
             phone = (body.get("phone") or "").strip()
             if phone:
                 try:
@@ -605,8 +608,12 @@ class ProfileDetail(generics.GenericAPIView):
                 if can_edit_basic:
                     p.first_name = body.get("firstName")
                     p.last_name = body.get("lastName")
-                    p.phone = phone
-                    profile_fields += ["first_name", "last_name", "phone"]
+                    profile_fields += ["first_name", "last_name"]
+                    # Only touch phone when the site collects it, so
+                    # turning collection off doesn't wipe stored numbers.
+                    if config.COLLECT_PHONE_NUMBER:
+                        p.phone = phone
+                        profile_fields += ["phone"]
                     if can_edit_email:
                         request.user.email = email
                         request.user.save(update_fields=["email"])
@@ -917,14 +924,16 @@ class RegisterSerializer(serializers.Serializer):
         # A null mobile / vehicle plate (see allow_null above) becomes ""
         # so the Profile row always gets a string, not None. The plate is
         # also dropped entirely unless the site collects it.
-        attrs["mobile"] = (attrs.get("mobile") or "").strip()
+        attrs["mobile"] = (
+            (attrs.get("mobile") or "").strip() if config.COLLECT_PHONE_NUMBER else ""
+        )
         attrs["vehicleRegistrationPlate"] = (
             (attrs.get("vehicleRegistrationPlate") or "").strip()
             if config.COLLECT_VEHICLE_REGISTRATION_PLATE
             else ""
         )
 
-        if REQUIRE_MOBILE and not attrs["mobile"]:
+        if REQUIRE_MOBILE and config.COLLECT_PHONE_NUMBER and not attrs["mobile"]:
             raise serializers.ValidationError({"mobile": "error.fieldRequired"})
 
         # Store the phone number in E.164 format.

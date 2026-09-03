@@ -77,6 +77,7 @@
               "
             />
             <q-input
+              v-if="features?.signup?.collectPhoneNumber !== false"
               v-model="form.mobile"
               class="col-12 col-sm-6"
               filled

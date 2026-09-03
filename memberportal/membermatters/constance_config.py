@@ -314,7 +314,7 @@ CONSTANCE_CONFIG = {
     ),
     # Induction
     "MOODLE_INDUCTION_ENABLED": (
-        True,
+        False,
         "Whether induction is performed via the Moodle platform or not. This setting overrides the Canvas settings below. If both are enabled, Moodle will be used.",
     ),
     "MOODLE_API_BASE_URL": (
@@ -364,6 +364,10 @@ CONSTANCE_CONFIG = {
     "COLLECT_VEHICLE_REGISTRATION_PLATE": (
         False,
         "Display a field that collects the member's vehicle registration plate on signup & in the profile page.",
+    ),
+    "COLLECT_PHONE_NUMBER": (
+        True,
+        "Display a field that collects the member's phone number on signup & in the profile page. Turn off if you don't want to collect phone numbers.",
     ),
     "SIGNUP_REQUIRE_PRIVACY_CONSENT": (
         False,
@@ -571,6 +575,7 @@ CONSTANCE_CONFIG_FIELDSETS = OrderedDict(
                 "REQUIRE_ACCESS_CARD",
                 "MEMBER_CAN_ENTER_ACCESS_CARD",
                 "COLLECT_VEHICLE_REGISTRATION_PLATE",
+                "COLLECT_PHONE_NUMBER",
                 "SIGNUP_REQUIRE_PRIVACY_CONSENT",
                 "SIGNUP_PRIVACY_POLICY_URL",
                 "SIGNUP_PRIVACY_POLICY_TEXT",

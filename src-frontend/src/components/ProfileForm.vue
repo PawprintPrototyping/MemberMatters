@@ -48,6 +48,7 @@
       />
 
       <q-input
+        v-if="features?.signup?.collectPhoneNumber !== false"
         v-model="form.phone"
         outlined
         type="tel"

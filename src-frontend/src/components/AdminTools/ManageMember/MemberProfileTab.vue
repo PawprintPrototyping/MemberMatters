@@ -191,6 +191,7 @@
           />
 
           <q-input
+            v-if="features?.signup?.collectPhoneNumber !== false"
             v-model="profileForm.phone"
             outlined
             type="tel"

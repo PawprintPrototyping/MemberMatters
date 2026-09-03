@@ -38,6 +38,7 @@ from profile.models import (
     User,
     UserEventLog,
 )
+from profile.phone import to_e164
 from services import sms
 from services.emails import send_email_to_admin
 from .models import MemberTier, PaymentPlan
@@ -988,9 +989,10 @@ class MemberProfile(APIView):
                 status=status.HTTP_409_CONFLICT,
             )
 
-        # Store the phone number in E.164 format.
+        # Store the phone number in E.164 format. Skip entirely when the
+        # site doesn't collect phone numbers so existing values are kept.
         phone = (body.get("phone") or "").strip()
-        if phone:
+        if phone and config.COLLECT_PHONE_NUMBER:
             try:
                 phone = to_e164(phone, config.PROFILE_DEFAULT_PHONE_REGION)
             except ValueError:
@@ -1003,7 +1005,8 @@ class MemberProfile(APIView):
         member.profile.first_name = body.get("firstName")
         member.profile.last_name = body.get("lastName")
         member.profile.rfid = rfid
-        member.profile.phone = phone
+        if config.COLLECT_PHONE_NUMBER:
+            member.profile.phone = phone
         member.profile.screen_name = screen_name
         member.profile.vehicle_registration_plate = body.get("vehicleRegistrationPlate")
         member.profile.exclude_from_email_export = body.get("excludeFromEmailExport")
