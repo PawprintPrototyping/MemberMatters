@@ -247,6 +247,7 @@ jobs:
           glitchtip-cli --version
 
       - name: Inject and upload source maps
+        continue-on-error: true
         working-directory: src-frontend
         env:
           SENTRY_URL: ${{ inputs.glitchtip-url }}
