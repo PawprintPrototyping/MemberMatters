@@ -104,6 +104,8 @@ RUN --mount=type=cache,target=/root/.npm \
 COPY src-frontend/ ./
 COPY package.json /build/package.json
 RUN npm run build
+# Source maps are uploaded from CI, we don't need to ship them in the image
+RUN find dist -name '*.map' -type f -delete
 
 ##############################################################################
 # runtime: the only stage that actually ships. Pulls the built venv and

@@ -1,11 +1,8 @@
 import address from 'address';
 import sha256 from 'crypto-js/sha256';
 import CryptoJS from 'crypto-js';
-// import router from "../../router";
-// import * as Sentry from "@sentry/vue";
-// import { Integrations } from "@sentry/tracing";
-// import { version } from "../../../package.json";
 import { api } from 'boot/axios';
+import { initSentry } from 'boot/sentry';
 
 export default {
   namespaced: true,
@@ -95,34 +92,16 @@ export default {
             commit('setImages', result.data.images);
             commit('setTheme', result.data.theme);
 
-            // if (
-            //   result.data.sentryDSN &&
-            //   process.env.NODE_ENV !== "development"
-            // ) {
-            //   Sentry.init({
-            //     Vue,
-            //     dsn: result.data.sentryDSN,
-            //     environment: process.env.NODE_ENV,
-            //     release: version,
-            //     integrations: [
-            //       new Integrations.BrowserTracing({
-            //         routingInstrumentation:
-            //           Sentry.vueRouterInstrumentation(router),
-            //         tracingOrigins: ["localhost", /^\//],
-            //       }),
-            //     ],
-            //     initialScope: {
-            //       tags: {
-            //         siteOwner: result.data.general.siteOwner,
-            //         siteContact: result.data.contact.sysadmin,
-            //       },
-            //     },
-            //     // Set tracesSampleRate to 1.0 to capture 100%
-            //     // of transactions for performance monitoring.
-            //     // We recommend adjusting this value in production
-            //     tracesSampleRate: 1.0,
-            //   });
-            // }
+            // Initialise Sentry once the DSN is known. initSentry() is a
+            // no-op without a DSN or in development, and ignores repeat
+            // calls, so a config refetch won't re-init the client.
+            initSentry(result.data.sentryDSN, {
+              environment: result.data.sentryEnvironment,
+              tags: {
+                siteOwner: result.data.general.siteOwner,
+                siteContact: result.data.contact?.sysadmin,
+              },
+            });
 
             const { analyticsId } = result.data;
 
