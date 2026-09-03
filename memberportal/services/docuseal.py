@@ -9,28 +9,28 @@ logger = logging.getLogger("docuseal")
 
 def create_submission_for_subscription(profile):
     try:
+        full_name = "{} {}".format(profile.first_name, profile.last_name)
         data = {
-            "template_id": config.DOCUSEAL_TEMPLATE_ID,
+            # template_id must be a JSON integer; Constance may hand back a string
+            "template_id": int(config.DOCUSEAL_TEMPLATE_ID),
             ### Customize the following to fit your instance deployment and template
-            "send_email": "False",
+            "send_email": False,
             "completed_redirect_url": config.SITE_URL,
             "submitters": [
                 {
                     "role": "First Party",
-                    "name": profile.first_name + " " + profile.last_name,
+                    "name": full_name,
                     "email": profile.user.email,
                     "fields": [
                         {
                             "name": "name",
-                            "default_value": profile.first_name
-                            + " "
-                            + profile.last_name,
+                            "default_value": full_name,
                         }
                     ],
                 }
             ],
         }
-        logger.debug("Submitting to Docuseal with:\n{}".format(data))
+        logger.debug("Submitting to Docuseal with:\n{}".format(json.dumps(data)))
 
         # there seem to be inconsistencies between the docuseal package's expected backend api and what is implemented by the docuseal
         # application (at least with the opensource option as of writing).  Opting to use requests package as a workaround.
