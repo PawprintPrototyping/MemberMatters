@@ -24,6 +24,8 @@ from services.discord import post_kiosk_swipe_to_discord
 from services.docuseal import (
     create_submission_for_subscription,
     get_docuseal_submission,
+    submission_is_complete,
+    submission_is_declined,
 )
 import base64
 from urllib.parse import parse_qs, urlencode
@@ -530,8 +532,7 @@ class ProfileDetail(generics.GenericAPIView):
                 # TODO the following removed with a webhook callback from DocuSeal on submission signing
                 submission = get_docuseal_submission(p)
                 if submission is not None:
-                    state = submission["status"]
-                    if state == "complete":
+                    if submission_is_complete(submission):
                         # in the event our induction process is *just* DocuSeal and the doc is signed, update unduction status
                         if not (
                             config.MOODLE_INDUCTION_ENABLED
@@ -539,7 +540,7 @@ class ProfileDetail(generics.GenericAPIView):
                         ):
                             p.update_last_induction()
                             response["lastInduction"] = p.last_induction
-                    elif state != "declined" and p.memberdoc_url:
+                    elif not submission_is_declined(submission) and p.memberdoc_url:
                         response["inductionLink"].append(p.memberdoc_url)
                     # remainder state is "declined"
 
