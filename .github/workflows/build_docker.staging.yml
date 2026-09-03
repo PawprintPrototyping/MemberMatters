@@ -24,6 +24,12 @@ jobs:
       platforms: linux/amd64,linux/arm64
       push: true
       tags: ghcr.io/pawprintprototyping/membermatters:staging,ghcr.io/pawprintprototyping/membermatters:${{ github.sha }}
+      upload-sourcemaps: true
+      glitchtip-org: pawprint-prototyping
+      glitchtip-project: membermatters-frontend
+    secrets:
+      GLITCHTIP_URL: ${{ secrets.GLITCHTIP_URL }}
+      GLITCHTIP_AUTH_TOKEN: ${{ secrets.GLITCHTIP_AUTH_TOKEN }}
 
   deploy:
     name: Deploy to staging

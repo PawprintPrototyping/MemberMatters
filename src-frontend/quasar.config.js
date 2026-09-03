@@ -54,6 +54,10 @@ module.exports = configure(async function (ctx) {
         // When running with capacitor this value is used for the base URL for all API requests
         apiBaseUrl: process.env.API_BASE_URL,
         vueRouterMode: 'history',
+        // Release identifier reported by the Sentry/GlitchTip client and
+        // used as the release name when uploading source maps in CI. Set to
+        // the commit SHA in the build pipeline; falls back to package version.
+        sentryRelease: process.env.SENTRY_RELEASE || '',
       },
 
       vueRouterMode: 'history', // available values: 'hash', 'history'
@@ -68,6 +72,10 @@ module.exports = configure(async function (ctx) {
       minify: true,
 
       extendViteConf(viteConf, {}) {
+        // Emit separate source-map files for GlitchTip.
+        viteConf.build = viteConf.build || {};
+        viteConf.build.sourcemap = 'hidden';
+
         viteConf.plugins.push(tsconfigPaths.default());
 
         viteConf.plugins.push({

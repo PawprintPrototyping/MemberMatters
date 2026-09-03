@@ -34,9 +34,29 @@ on:
         description: "JSON object of {filename: content} to write alongside the image tarball in the artifact"
         type: string
         default: "{}"
+      upload-sourcemaps:
+        description: "Build the frontend and upload its source maps to GlitchTip for the resolved commit SHA."
+        type: boolean
+        default: false
+      glitchtip-org:
+        description: "GlitchTip organisation slug (required when upload-sourcemaps is true)."
+        type: string
+        default: ""
+      glitchtip-project:
+        description: "GlitchTip project slug (required when upload-sourcemaps is true)."
+        type: string
+        default: ""
+    secrets:
+      GLITCHTIP_URL:
+        description: "Base URL of the GlitchTip instance. Required when upload-sourcemaps is true."
+        required: false
+      GLITCHTIP_AUTH_TOKEN:
+        description: "GlitchTip API auth token. Required when upload-sourcemaps is true."
+        required: false
 
 env:
   REGISTRY: ghcr.io
+  NODE_VERSION: "22.2.0"
 
 jobs:
   build:
@@ -152,3 +172,87 @@ jobs:
         with:
           name: ${{ inputs.artifact-name }}
           path: ./artifact-out/
+
+  sourcemaps:
+    name: Upload frontend source maps
+    if: ${{ inputs.upload-sourcemaps }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Validate inputs
+        shell: bash
+        run: |
+          missing=""
+          [ -n "${{ inputs.glitchtip-org }}" ] || missing="$missing glitchtip-org"
+          [ -n "${{ inputs.glitchtip-project }}" ] || missing="$missing glitchtip-project"
+          [ -n "${{ secrets.GLITCHTIP_URL }}" ] || missing="$missing GLITCHTIP_URL"
+          [ -n "${{ secrets.GLITCHTIP_AUTH_TOKEN }}" ] || missing="$missing GLITCHTIP_AUTH_TOKEN"
+          if [ -n "$missing" ]; then
+            echo "upload-sourcemaps is true but these are unset:$missing" >&2
+            exit 1
+          fi
+
+      # Match the image build: same SHA validated as hex, so the source-map
+      # release equals the SENTRY_RELEASE baked into the image.
+      - name: Resolve commit SHA
+        id: sha
+        env:
+          FULL_SHA: ${{ inputs.commit-sha != '' && inputs.commit-sha || github.sha }}
+        shell: bash
+        run: |
+          if [[ ! "$FULL_SHA" =~ ^[0-9a-f]{7,40}$ ]]; then
+            echo "Refusing non-hex commit SHA: $FULL_SHA" >&2
+            exit 1
+          fi
+          echo "short=${FULL_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ inputs.commit-sha != '' && inputs.commit-sha || github.sha }}
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: src-frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: src-frontend
+        run: npm ci --no-audit --no-fund
+
+      # Build with source maps (quasar.config.js: build.sourcemap = true)
+      - name: Build frontend with source maps
+        working-directory: src-frontend
+        env:
+          SENTRY_RELEASE: ${{ steps.sha.outputs.short }}
+        run: npm run build
+
+      # Pinned by SHA256 to defend against supply-chain attack since Gitlab version tags are mutable
+      - name: Install glitchtip-cli
+        env:
+          GLITCHTIP_CLI_VERSION: v1.0.0
+          GLITCHTIP_CLI_SHA256: de1c035aa61931a6265d7b29b1614781dfee925466142a907508cb097082dfef
+        run: |
+          set -euo pipefail
+          url="https://gitlab.com/glitchtip/glitchtip-cli/-/jobs/artifacts/${GLITCHTIP_CLI_VERSION}/raw/artifacts/glitchtip-cli-linux-x86_64?job=build-linux-x86_64"
+          curl -fsSL "$url" -o glitchtip-cli
+          echo "${GLITCHTIP_CLI_SHA256}  glitchtip-cli" | sha256sum -c -
+          install -m 0755 glitchtip-cli /usr/local/bin/glitchtip-cli
+          rm -f glitchtip-cli
+          glitchtip-cli --version
+
+      - name: Inject and upload source maps
+        working-directory: src-frontend
+        env:
+          SENTRY_URL: ${{ secrets.GLITCHTIP_URL }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.GLITCHTIP_AUTH_TOKEN }}
+        run: |
+          glitchtip-cli sourcemaps inject ./dist
+          glitchtip-cli sourcemaps upload ./dist \
+            --release "${{ steps.sha.outputs.short }}" \
+            --org "${{ inputs.glitchtip-org }}" \
+            --project "${{ inputs.glitchtip-project }}"

@@ -7,6 +7,7 @@ from django.contrib.auth import (
 import logging
 from constance import config
 import json
+from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction, IntegrityError
@@ -158,6 +159,7 @@ class GetConfig(APIView):
             "features": features,
             "analyticsId": config.GOOGLE_ANALYTICS_MEASUREMENT_ID,
             "sentryDSN": config.SENTRY_DSN_FRONTEND,
+            "sentryEnvironment": settings.ENVIRONMENT,
         }
 
         return Response(response)
