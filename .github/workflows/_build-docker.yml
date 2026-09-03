@@ -56,7 +56,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  NODE_VERSION: "22.2.0"
+  NODE_VERSION: "24.20.0"
 
 jobs:
   build:
