@@ -334,6 +334,8 @@ export default {
     proxyVotes: 'Proxy Votes',
     attendees: 'Attendees',
     noAttendees: 'No Attendees Found',
+    disabledFeature:
+      '{warning}: Proxy voting is turned off. Enable {flag} in {configLink} before making any changes.',
   },
   meetingForm: {
     pageDescription: 'Fill out the form below to create a new meeting.',
@@ -732,8 +734,8 @@ export default {
       "That access card is already registered to another member. Please double-check the number, or contact us if you think it's a mistake.",
   },
   tiers: {
-    disabledFeature:
-      'WARNING: This feature is turned off. You should enable it before making any changes.',
+    membershipPaymentsDisabled:
+      '{warning}: Stripe membership payments are turned off. Enable {flag1} and {flag2} in {configLink} before making any changes.',
     select: 'Membership Plan',
     selectToContinue: 'Select a membership plan',
     noTiers: 'There are no membership plans available right now.',

@@ -188,10 +188,22 @@ export default defineComponent({
 
       api
         .post('/api/admin/tiers/', this.form)
-        .then(() => {
+        .then((response) => {
           this.form.error = false;
           this.form.success = true;
           this.getTiers();
+          // Navigate to the new tier's detail page so the admin lands on the
+          // Payment Plans card. Falls back to leaving the dialog open with the
+          // success banner if id is missing.
+          const newTierId = response?.data?.id;
+          if (newTierId) {
+            this.addTierDialog = false;
+            this.resetForm();
+            this.$router.push({
+              name: 'manageTier',
+              params: { planId: newTierId },
+            });
+          }
         })
         .catch((error) => {
           this.form.error = true;

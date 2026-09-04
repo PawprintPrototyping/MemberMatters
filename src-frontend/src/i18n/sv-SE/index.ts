@@ -315,6 +315,8 @@ export default {
     proxyVotes: 'Ombudsröster',
     attendees: 'Deltagare',
     noAttendees: 'Inga deltagere hittades',
+    disabledFeature:
+      '{warning}: Ombudsröstning är avstängd. Aktivera {flag} under {configLink} innan du gör några ändringar.',
   },
   meetingForm: {
     pageDescription: 'Fyll i formuläret nedan för att skapa ett nytt möte.',
@@ -710,8 +712,8 @@ export default {
       'Det nyckelkortet är redan registrerat på en annan medlem. Dubbelkolla numret eller kontakta oss om du tror det är ett misstag.',
   },
   tiers: {
-    disabledFeature:
-      'VARNING: Denna funktion är avstängd. Du borde aktivera den innan du gör några ändringar.',
+    membershipPaymentsDisabled:
+      '{warning}: Stripe-medlemskapsbetalningar är avstängda. Aktivera {flag1} och {flag2} under {configLink} innan du gör några ändringar.',
     select: 'Medlemskapsnivå',
     selectToContinue: 'Välj en medlemskapsnivå',
     noTiers: 'Det finns inga medlemskapsnivåer tillgänliga just nu.',

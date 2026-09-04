@@ -124,12 +124,10 @@
           <template v-slot:top-left>
             <q-btn
               @click="addPlanDialog = true"
-              round
               color="primary"
               :icon="icons.addAlternative"
-            >
-              <q-tooltip :delay="500">{{ $t('tiers.add') }}</q-tooltip>
-            </q-btn>
+              :label="$t('paymentPlans.add')"
+            />
           </template>
         </q-table>
       </q-card-section>
