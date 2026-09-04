@@ -518,6 +518,14 @@ CONSTANCE_CONFIG = {
         1,
         "DocuSeal template ID to send as part of induction",
     ),
+    "DOCUSEAL_ADDITIONAL_SIGNERS": (
+        "[]",
+        "Optional JSON array of static additional submitters appended after the "
+        "member on every DocuSeal submission (e.g. a witness or organisation "
+        'signatory). Each entry is an object with a "role" and "email", e.g. '
+        '[{"role": "Second Party", "email": "signer@example.org", "name": "Jane Doe"}]. '
+        "Leave as [] to send only the member.",
+    ),
 }
 
 CONSTANCE_CONFIG_FIELDSETS = OrderedDict(
@@ -740,6 +748,7 @@ CONSTANCE_CONFIG_FIELDSETS = OrderedDict(
                 "DOCUSEAL_URL",
                 "DOCUSEAL_API_KEY",
                 "DOCUSEAL_TEMPLATE_ID",
+                "DOCUSEAL_ADDITIONAL_SIGNERS",
             ),
         ),
         (
