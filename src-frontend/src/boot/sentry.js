@@ -35,9 +35,9 @@ export function initSentry(dsn, { environment, tags = {} } = {}) {
     initialScope: {
       tags,
     },
-    tracesSampleRate: 0.01,      // Capture 1% of transactions for performance monitoring.
-    autoSessionTracking: false,  // GlitchTip does not support sessions.
-    tracePropagationTargets: ['localhost', /^\//],  // Only send traces for our own app's requests.
+    tracesSampleRate: 0.01, // Capture 1% of transactions for performance monitoring.
+    autoSessionTracking: false, // GlitchTip does not support sessions.
+    tracePropagationTargets: ['localhost', /^\//], // Only send traces for our own app's requests.
   });
 }
 
