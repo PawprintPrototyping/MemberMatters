@@ -6,7 +6,7 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from constance import config
 from constance.backends.database.models import Constance as ConstanceSetting
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.db.models import F, Sum, Value, CharField, Count, Max
 from django.db.models.functions import Concat
 from django.db.utils import OperationalError
