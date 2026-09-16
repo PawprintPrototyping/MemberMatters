@@ -285,7 +285,7 @@ sqlparse==0.5.5
     # via django
 stripe==9.8.0
     # via membermatters
-tablib==3.5.0
+tablib==3.10.0
     # via django-import-export
 tatsu==5.15.1
     # via ics
