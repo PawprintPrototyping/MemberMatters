@@ -962,8 +962,8 @@ export default defineComponent({
     docusealComplete(): boolean {
       return Boolean(
         this.selectedMember.induction?.providers.find(
-          (provider) => provider.provider === 'docuseal'
-        )?.complete
+          (provider) => provider.provider === 'docuseal',
+        )?.complete,
       );
     },
     // A settled non-member: not active and without a live subscription.

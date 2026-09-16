@@ -49,7 +49,7 @@ export const MemberProfileSchema = z.object({
           actionUrl: z.string(),
           completedAt: z.string().nullable(),
           checkedAt: z.string().nullable(),
-        })
+        }),
       ),
     })
     .optional(),
