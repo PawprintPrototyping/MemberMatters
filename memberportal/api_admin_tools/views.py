@@ -37,6 +37,7 @@ from profile.models import (
     CancelTriggeredBy,
     User,
     UserEventLog,
+    queue_listmonk_member_sync,
 )
 from profile.phone import to_e164
 from services import sms
@@ -1015,6 +1016,11 @@ class MemberProfile(APIView):
             with transaction.atomic():
                 member.save()
                 member.profile.save()
+                if member.profile.state in ("active", "inactive"):
+                    queue_listmonk_member_sync(
+                        member.profile,
+                        member.profile.state,
+                    )
         except IntegrityError:
             if (
                 email

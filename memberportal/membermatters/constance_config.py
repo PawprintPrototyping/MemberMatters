@@ -37,6 +37,18 @@ CONSTANCE_CONFIG = {
         "123 Example St, Nowhere",
         "This address is used in the footer of all emails for anti spam.",
     ),
+    "EMAIL_ENABLED": (
+        False,
+        "Whether the portal may send outbound email.",
+    ),
+    "EMAIL_BACKEND": (
+        "disabled",
+        "Selected email backend: disabled, postmark, smtp, console, or locmem.",
+    ),
+    "EMAIL_BACKEND_OPTIONS": (
+        "{}",
+        "A JSON object containing backend configuration and credentials. Restrict Constance configuration access to trusted administrators.",
+    ),
     # URLs
     "SITE_URL": (
         "https://membermatters.org",
@@ -308,10 +320,6 @@ CONSTANCE_CONFIG = {
         "",
         "Enter a Sentry DSN to enable sentry logging of backend errors. Leave blank to disable.",
     ),
-    "POSTMARK_API_KEY": (
-        "PLEASE_CHANGE_ME",
-        "The API key used to send email with Postmark.",
-    ),
     # Induction
     "MOODLE_INDUCTION_ENABLED": (
         False,
@@ -430,6 +438,31 @@ CONSTANCE_CONFIG = {
     "MAILCHIMP_SERVER": ("", "Required if enabling the Mailchimp integration."),
     "MAILCHIMP_LIST_ID": ("", "Required if enabling the Mailchimp integration."),
     "MAILCHIMP_TAG": ("Member", "Add this tag to all members synced to mailchimp."),
+    "ENABLE_LISTMONK_SYNC": (
+        False,
+        "Enable durable synchronization of active and inactive members to Listmonk.",
+    ),
+    "LISTMONK_URL": ("", "Base URL of the Listmonk instance."),
+    "LISTMONK_API_USERNAME": (
+        "api_user",
+        "Listmonk API username used with the API token.",
+    ),
+    "LISTMONK_API_TOKEN": (
+        "",
+        "Listmonk API token. Restrict Constance configuration access to trusted administrators.",
+    ),
+    "LISTMONK_ACTIVE_LIST_ID": (
+        0,
+        "Listmonk list ID for active members.",
+    ),
+    "LISTMONK_INACTIVE_LIST_ID": (
+        0,
+        "Listmonk list ID for inactive members.",
+    ),
+    "LISTMONK_REQUEST_TIMEOUT": (
+        5,
+        "Maximum seconds to wait for a Listmonk API response.",
+    ),
     "TWILIO_ACCOUNT_SID": (
         "",
         "The account SID (not api key SID) to use for the twilio integration.",
@@ -618,7 +651,14 @@ CONSTANCE_CONFIG_FIELDSETS = OrderedDict(
                 "CANVAS_INDUCTION_COURSE_ID",
             ),
         ),
-        ("Postmark (EMAIL) Integration", ("POSTMARK_API_KEY",)),
+        (
+            "Email Delivery",
+            (
+                "EMAIL_ENABLED",
+                "EMAIL_BACKEND",
+                "EMAIL_BACKEND_OPTIONS",
+            ),
+        ),
         (
             "Twilio (SMS) Integration",
             (
@@ -679,6 +719,18 @@ CONSTANCE_CONFIG_FIELDSETS = OrderedDict(
                 "MAILCHIMP_SERVER",
                 "MAILCHIMP_LIST_ID",
                 "MAILCHIMP_TAG",
+            ),
+        ),
+        (
+            "Listmonk (EMAIL MARKETING)",
+            (
+                "ENABLE_LISTMONK_SYNC",
+                "LISTMONK_URL",
+                "LISTMONK_API_USERNAME",
+                "LISTMONK_API_TOKEN",
+                "LISTMONK_ACTIVE_LIST_ID",
+                "LISTMONK_INACTIVE_LIST_ID",
+                "LISTMONK_REQUEST_TIMEOUT",
             ),
         ),
         ("Theme Swipe Integration", ("THEME_SWIPE_URL",)),
