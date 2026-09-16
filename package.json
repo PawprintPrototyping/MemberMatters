@@ -2,7 +2,7 @@
   "name": "membermatters",
   "version": "3.8.0",
   "devDependencies": {
-    "husky": "^6.0.0"
+    "husky": "^9.1.7"
   },
   "scripts": {
     "prepare": "husky install"
