@@ -175,7 +175,7 @@ export default {
         this.memberNames = this.members.filter(
           (v) =>
             v.name.toLowerCase().indexOf(needle) > -1 &&
-            v.name !== this.profile.fullName
+            v.name !== this.profile.fullName,
         );
       });
     },

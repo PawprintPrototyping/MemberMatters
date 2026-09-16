@@ -94,7 +94,7 @@ export default {
 
       ws.onclose = () => {
         console.warn(
-          'Disconnected from card reader! Trying to reconnect in 5 seconds.'
+          'Disconnected from card reader! Trying to reconnect in 5 seconds.',
         );
         setTimeout(() => {
           this.connectReader();

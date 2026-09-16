@@ -112,7 +112,7 @@ export default defineComponent({
     selectedMember(): MemberProfile {
       if (this.members && (this.members as MemberProfile[]).length) {
         const match = (this.members as MemberProfile[]).find(
-          (member) => member.id === this.member.id
+          (member) => member.id === this.member.id,
         );
         if (match) {
           return match;

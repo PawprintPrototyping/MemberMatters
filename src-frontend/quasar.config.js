@@ -1,4 +1,5 @@
 /* eslint-env node */
+/* eslint-disable @typescript-eslint/no-require-imports -- Quasar loads this configuration as CommonJS. */
 
 /*
  * This file runs in a Node context (it's NOT transpiled by Babel), so use only
@@ -11,13 +12,7 @@
 const { configure } = require('quasar/wrappers');
 const path = require('path');
 
-const inject = require('@rollup/plugin-inject');
-const esbuildShim = require.resolve('node-stdlib-browser/helpers/esbuild/shim');
-
-const tsconfigPaths = require('vite-tsconfig-paths');
-
-module.exports = configure(async function (ctx) {
-  const { default: stdLibBrowser } = await import('node-stdlib-browser');
+module.exports = configure(function (ctx) {
   return {
     eslint: {
       warnings: true,
@@ -30,14 +25,22 @@ module.exports = configure(async function (ctx) {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-vite/boot-files
-    boot: ['sentry', 'i18n', 'axios', 'routeGuards', 'capacitor', 'apexcharts'],
+    boot: [
+      'vuex',
+      'sentry',
+      'i18n',
+      'axios',
+      'routeGuards',
+      'capacitor',
+      'apexcharts',
+    ],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#css
     css: ['app.scss'],
 
     // https://github.com/quasarframework/quasar/tree/dev/extras
     extras: [
-      'mdi-v5',
+      'mdi-v7',
       'roboto-font', // optional, you are not bound to it
     ],
 
@@ -50,13 +53,9 @@ module.exports = configure(async function (ctx) {
 
       htmlFilename: 'index.html',
 
-      env: {
-        // When running with capacitor this value is used for the base URL for all API requests
+      defineEnv: {
+        // These public values are compiled into the browser bundle.
         apiBaseUrl: process.env.API_BASE_URL,
-        vueRouterMode: 'history',
-        // Release identifier reported by the Sentry/GlitchTip client and
-        // used as the release name when uploading source maps in CI. Set to
-        // the commit SHA in the build pipeline; falls back to package version.
         sentryRelease: process.env.SENTRY_RELEASE || '',
       },
 
@@ -76,27 +75,8 @@ module.exports = configure(async function (ctx) {
         viteConf.build = viteConf.build || {};
         viteConf.build.sourcemap = 'hidden';
 
-        viteConf.plugins.push(tsconfigPaths.default());
-
-        viteConf.plugins.push({
-          ...inject({
-            global: [esbuildShim, 'global'],
-            process: [esbuildShim, 'process'],
-            Buffer: [esbuildShim, 'Buffer'],
-          }),
-          enforce: 'post',
-        });
-
-        viteConf.optimizeDeps.esbuildOptions = {
-          ...viteConf.optimizeDeps.esbuildOptions,
-          define: {
-            global: 'globalThis',
-          },
-          // Enable esbuild polyfill plugins
-          plugins: [],
-        };
-
-        viteConf.optimizeDeps.include = ['buffer', 'process'];
+        viteConf.resolve = viteConf.resolve || {};
+        viteConf.resolve.tsconfigPaths = true;
       },
       viteVuePluginOptions: {},
 
@@ -106,12 +86,18 @@ module.exports = configure(async function (ctx) {
         '@store': path.join(__dirname, 'src/store/'),
         '@mixins': path.join(__dirname, 'src/mixins/'),
         '@assets': path.join(__dirname, 'src/assets/'),
-        ...stdLibBrowser,
+        pages: path.join(__dirname, 'src/pages/'),
+        types: path.join(__dirname, 'src/types/'),
+        boot: path.join(__dirname, 'src/boot/'),
+        layouts: path.join(__dirname, 'src/layouts/'),
+        components: path.join(__dirname, 'src/components/'),
+        src: path.join(__dirname, 'src/'),
+        app: __dirname,
       },
 
       vitePlugins: [
         [
-          '@intlify/vite-plugin-vue-i18n',
+          '@intlify/unplugin-vue-i18n/vite',
           {
             // if you want to use Vue I18n Legacy API, you need to set `compositionOnly: false`
             compositionOnly: false,
@@ -121,7 +107,7 @@ module.exports = configure(async function (ctx) {
             runtimeOnly: false,
 
             // you need to set i18n resource including paths !
-            include: path.join(__dirname, './src/i18n/**'),
+            include: path.join(__dirname, 'src/i18n/*/index.ts'),
           },
         ],
       ],
@@ -217,7 +203,7 @@ module.exports = configure(async function (ctx) {
 
     // https://v2.quasar.dev/quasar-cli-vite/developing-pwa/configuring-pwa
     pwa: {
-      workboxMode: 'generateSW', // or 'injectManifest'
+      workboxMode: 'GenerateSW', // or 'InjectManifest'
       injectPwaMetaTags: true,
       swFilename: 'sw.js',
       manifestFilename: 'manifest.json',
@@ -245,7 +231,7 @@ module.exports = configure(async function (ctx) {
       bundler: 'packager', // 'packager' or 'builder'
 
       packager: {
-        // https://github.com/electron-userland/electron-packager/blob/master/docs/api.md#options
+        // https://github.com/electron/packager
         // OS X / Mac App Store
         // appBundleId: '',
         // appCategoryType: '',

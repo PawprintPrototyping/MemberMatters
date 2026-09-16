@@ -63,7 +63,7 @@
               :label="
                 requiredLabel(
                   $t('form.screenName'),
-                  features?.signup?.requireScreenName !== false
+                  features?.signup?.requireScreenName !== false,
                 )
               "
               lazy-rules
@@ -299,10 +299,10 @@ export default defineComponent({
 
       // Normalise to E.164 before posting; the backend re-validates.
       const mobile = this.form.mobile
-        ? parsePhoneNumberFromString(
+        ? (parsePhoneNumberFromString(
             this.form.mobile,
-            this.phoneRegion as CountryCode
-          )?.format('E.164') ?? this.form.mobile
+            this.phoneRegion as CountryCode,
+          )?.format('E.164') ?? this.form.mobile)
         : this.form.mobile;
 
       this.$axios
@@ -343,7 +343,7 @@ export default defineComponent({
             >;
             const keys = [...new Set(Object.values(data).flat())];
             this.validationErrors = keys.map(
-              (key) => i18n.global.t(key) as string
+              (key) => i18n.global.t(key) as string,
             );
             this.error = this.validationErrors.length === 0;
             this.errorExists = false;

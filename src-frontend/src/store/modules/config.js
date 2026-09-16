@@ -1,6 +1,3 @@
-import address from 'address';
-import sha256 from 'crypto-js/sha256';
-import CryptoJS from 'crypto-js';
 import { api } from 'boot/axios';
 import { initSentry } from 'boot/sentry';
 
@@ -16,7 +13,6 @@ export default {
     keys: {},
     features: {},
     kioskId: null,
-    kioskIp: null,
     images: {},
     theme: {},
   },
@@ -30,7 +26,6 @@ export default {
     keys: (state) => state.keys,
     features: (state) => state.features,
     kioskId: (state) => state.kioskId,
-    kioskIp: (state) => state.kioskIp,
     images: (state) => state.images,
     theme: (state) => state.theme,
   },
@@ -62,9 +57,6 @@ export default {
     setKioskId(state, payload) {
       state.kioskId = payload;
     },
-    setKioskIp(state, payload) {
-      state.kioskIp = payload;
-    },
     setImages(state, payload) {
       state.images = payload;
     },
@@ -82,7 +74,7 @@ export default {
             commit('setSiteOwner', result.data.general.siteOwner);
             commit(
               'setSiteLocaleCurrency',
-              result.data.general.siteLocaleCurrency
+              result.data.general.siteLocaleCurrency,
             );
             commit('setContact', result.data.contact);
             commit('setHomepageCards', result.data.homepageCards);
@@ -132,14 +124,12 @@ export default {
           });
       });
     },
-    getKioskId({ commit }) {
-      return new Promise((resolve) => {
-        commit('setKioskIp', address.ip());
-        address.mac((err, macAddress) => {
-          commit('setKioskId', sha256(macAddress).toString(CryptoJS.enc.Hex));
-          resolve();
-        });
-      });
+    async getKioskId({ commit }) {
+      if (!window.memberMatters) {
+        throw new Error('Electron kiosk identity bridge is unavailable');
+      }
+
+      commit('setKioskId', await window.memberMatters.getKioskIdentity());
     },
     pushKioskId({ state }) {
       return new Promise((resolve, reject) => {

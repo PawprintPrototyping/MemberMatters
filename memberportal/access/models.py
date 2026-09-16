@@ -252,7 +252,7 @@ class AccessControlledDevice(
         ProfileQueryset = Profile.objects.filter(
             state="active", admin_disabled_access=False
         ).exclude(rfid__isnull=True)
-        authorised_tags = list()
+        authorised_tags = []
 
         # Get the device object
         if self.type == "door":

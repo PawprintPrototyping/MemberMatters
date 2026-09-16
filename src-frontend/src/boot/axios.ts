@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { Platform } from 'quasar';
 import { boot } from 'quasar/wrappers';
+import store from '../store';
 
 declare module '@vue/runtime-core' {
   interface ComponentCustomProperties {
@@ -9,13 +10,13 @@ declare module '@vue/runtime-core' {
 }
 
 const api = axios.create({
-  baseURL: process.env.apiBaseUrl || '',
+  baseURL: import.meta.env.apiBaseUrl || '',
   withCredentials: true,
   xsrfCookieName: 'csrftoken',
   xsrfHeaderName: 'X-CSRFTOKEN',
 });
 
-export default boot(({ app, store }) => {
+export default boot(({ app }) => {
   // This interceptor adds the JWT to the request if it exists (ie mobile app)
   api.interceptors.request.use(function (config) {
     const token = store.state.auth?.accessToken;
@@ -39,7 +40,7 @@ export default boot(({ app, store }) => {
       } else {
         return Promise.reject(error);
       }
-    }
+    },
   );
 
   app.config.globalProperties.$axios = api;

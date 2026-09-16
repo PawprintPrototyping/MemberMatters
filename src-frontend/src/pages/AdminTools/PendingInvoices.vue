@@ -224,7 +224,7 @@ export default {
       this.$axios
         .post(
           `/api/admin/billing/invoices/${this.selectedInvoice.invoiceId}/mark-paid/`,
-          { comment: this.comment }
+          { comment: this.comment },
         )
         .then(() => {
           this.$q.notify({

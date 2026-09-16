@@ -40,7 +40,7 @@ const REQUIRED_STEP_KEY: Record<Exclude<SignupStep, 'payment'>, string> = {
 export function signupStepStatus(
   step: SignupStep,
   requiredSteps: string[] | null,
-  subscriptionState: string | null | undefined
+  subscriptionState: string | null | undefined,
 ): SignupStepState {
   if (step === 'payment') {
     return {
@@ -61,7 +61,7 @@ export function signupStepStatus(
 export function nextSignupStep(
   features: SignupFeatures,
   requiredSteps: string[] | null,
-  subscriptionState: string | null | undefined
+  subscriptionState: string | null | undefined,
 ): SignupStep | null {
   const next = enabledSignupSteps(features).find((step) => {
     const status = signupStepStatus(step, requiredSteps, subscriptionState);

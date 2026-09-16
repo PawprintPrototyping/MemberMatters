@@ -1,5 +1,6 @@
 import { Platform } from 'quasar';
 import { boot } from 'quasar/wrappers';
+import store from '../store';
 import type { MemberState } from '../pages/pageAndRouteConfig';
 
 // Signup stages FORCE_SIGNUP_COMPLETION redirects out of. 'awaiting_payment' is
@@ -13,13 +14,11 @@ const FORCED_SIGNUP_STAGES = ['needs_plan', 'needs_requirements'];
 // trapped in the portal.
 const FORCED_SIGNUP_ROUTES = ['membershipPlan', 'profile', 'billing', 'logout'];
 
-export default boot(({ router, store }) => {
-  router.beforeEach(async (to, from, next) => {
+export default boot(({ router }) => {
+  router.beforeEach(async (to, from) => {
     // if we're in kiosk mode disallow certain pages
-    if (Platform.is.electron) {
-      if (!to.meta.kiosk) {
-        return next({ name: 'dashboard' });
-      }
+    if (Platform.is.electron && !to.meta.kiosk) {
+      return { name: 'dashboard' };
     }
 
     // Check if the user must be logged in to access the route. Fall
@@ -30,12 +29,12 @@ export default boot(({ router, store }) => {
       to.meta.loggedIn === true &&
       store.getters['profile/loggedIn'] !== true
     ) {
-      return next({
+      return {
         name: 'login',
         query: {
           nextUrl: to.fullPath,
         },
-      });
+      };
     }
 
     // The admin / allowedStates / forced-signup checks below fail closed
@@ -51,7 +50,7 @@ export default boot(({ router, store }) => {
         await store.dispatch('profile/getProfile');
       } catch {
         // Profile fetch failed (e.g. the session expired) — send to login.
-        return next({ name: 'login', query: { nextUrl: to.fullPath } });
+        return { name: 'login', query: { nextUrl: to.fullPath } };
       }
     }
 
@@ -72,11 +71,11 @@ export default boot(({ router, store }) => {
 
     // Check if the user must be an admin to access the route
     if (to.meta.admin === true) {
-      if (store.getters['profile/profile']?.permissions?.staff === true)
-        return next();
-      else {
-        return next({ name: 'Error403' });
+      if (store.getters['profile/profile']?.permissions?.staff === true) {
+        return true;
       }
+
+      return { name: 'Error403' };
     }
 
     const profile = store.getters['profile/profile'];
@@ -98,7 +97,7 @@ export default boot(({ router, store }) => {
       FORCED_SIGNUP_STAGES.includes(profile?.signupStage) &&
       !FORCED_SIGNUP_ROUTES.includes(to.name as string)
     ) {
-      return next({ name: 'membershipPlan' });
+      return { name: 'membershipPlan' };
     }
 
     // Check the route's allowedStates (member state gating). Staff bypass.
@@ -110,14 +109,16 @@ export default boot(({ router, store }) => {
         !profile?.memberStatus ||
         !allowedStates.includes(profile.memberStatus)
       ) {
-        return next({ name: 'Error403MemberOnly' });
+        return { name: 'Error403MemberOnly' };
       }
     }
 
     // if we are authenticating via SSO then don't update the route unless we're registering
     if (!from.query.sso || to.name === 'register') {
-      return next();
+      return true;
     }
+
+    return false;
   });
 
   router.afterEach(() => {

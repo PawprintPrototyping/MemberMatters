@@ -39,12 +39,10 @@ uv export --no-hashes --no-dev --no-emit-project -o requirements.txt
 If you can't use `uv`, the exported `requirements.txt` still works with pip. Follow the
 section below for your platform to create a virtual environment and install from it.
 
-Note that `requirements.txt` is exported with `--no-dev`, so it contains runtime
-dependencies only. The dev tooling (`black`, `pre-commit`) lives in the `dev` dependency
-group and must be installed separately:
+Note that `requirements.txt` is exported with `--no-dev`, so it contains runtime dependencies only. Install the dev hook runner separately:
 
 ```bash
-pip3 install black pre-commit
+pip3 install pre-commit
 ```
 
 ### Linux (Ubuntu)
@@ -155,7 +153,7 @@ Now that the backend API is running, you can head over to the [frontend](/fronte
 ## Stripe Webhooks
 If you want to test Stripe webhooks you can use the stripe CLI to forward webhooks to your local dev server.
 To do so, you will need to install the stripe CLI and login to your stripe account.
-Click [here](https://dashboard.stripe.com/test/webhooks/create?endpoint_location=local) for detailed instructions from 
+Click [here](https://dashboard.stripe.com/test/webhooks/create?endpoint_location=local) for detailed instructions from
 Stripe.
 
 Once you're set up, run the following command to forward webhooks to your local dev server:
@@ -164,7 +162,7 @@ Once you're set up, run the following command to forward webhooks to your local 
 stripe listen --skip-verify --events invoice.paid,invoice.payment_failed,customer.subscription.deleted --forward-to localhost:8080/api/billing/stripe-webhook/
 ```
 
-Finally, check that you're running the frontend proxy on port 8080 and configure the signing secret in the Constance 
+Finally, check that you're running the frontend proxy on port 8080 and configure the signing secret in the Constance
 settings.
 You can find the local signing secret in the command line output after running `stripe listen` above.
 It will start like this `whsec_...`

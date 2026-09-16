@@ -12,9 +12,9 @@
               $t('paymentPlans.intervalDescription', {
                 currency: plan.currency.toUpperCase(),
                 amount: $n(plan.cost / 100, 'currency', siteLocaleCurrency),
-                interval: $tc(
+                interval: $t(
                   `paymentPlans.interval.${plan.interval.toLowerCase()}`,
-                  plan.intervalAmount
+                  plan.intervalAmount,
                 ),
               })
             }}
@@ -31,7 +31,7 @@
               <q-btn
                 @click="selectPlan"
                 color="primary"
-                :label="$tc('button.select')"
+                :label="$t('button.select')"
               />
             </div>
           </q-card-section>

@@ -224,7 +224,7 @@ export default {
         ...signupStepStatus(
           name,
           this.requiredSteps,
-          this.profile.financial.subscriptionState
+          this.profile.financial.subscriptionState,
         ),
         ...meta[name],
       }));
@@ -240,7 +240,7 @@ export default {
     },
     isSignupInProgress() {
       return ['needs_plan', 'needs_requirements', 'awaiting_payment'].includes(
-        this.signupStage
+        this.signupStage,
       );
     },
     isActiveMember() {

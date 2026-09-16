@@ -243,14 +243,14 @@ export default defineComponent({
       return nextSignupStep(
         this.features,
         row.requiredSteps,
-        row.subscriptionStatus
+        row.subscriptionStatus,
       );
     },
     iconForStep(step: SignupStep, row: SignupRow): string {
       const status = signupStepStatus(
         step,
         row.requiredSteps,
-        row.subscriptionStatus
+        row.subscriptionStatus,
       );
       if (status.complete) return icons.success;
       if (status.pending) return icons.clock;
@@ -261,7 +261,7 @@ export default defineComponent({
       const status = signupStepStatus(
         step,
         row.requiredSteps,
-        row.subscriptionStatus
+        row.subscriptionStatus,
       );
       if (status.complete) return 'positive';
       if (status.pending) return 'warning';
@@ -272,7 +272,7 @@ export default defineComponent({
       const status = signupStepStatus(
         step,
         row.requiredSteps,
-        row.subscriptionStatus
+        row.subscriptionStatus,
       );
       if (status.complete) return this.$t('signupProgress.complete');
       if (status.pending) return this.$t('signupProgress.pending');

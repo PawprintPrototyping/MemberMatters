@@ -21,7 +21,7 @@
       >
         <q-item
           v-for="child in visibleLinks.filter(
-            (child) => child.hiddenMenu !== true
+            (child) => child.hiddenMenu !== true,
           )"
           :key="child.name"
           clickable

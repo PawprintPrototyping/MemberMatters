@@ -3,7 +3,7 @@
     <q-stepper v-model="step" ref="stepper" color="primary" animated>
       <q-step
         :name="stepIndex('billing')"
-        :title="$tc('signup.billing')"
+        :title="$t('signup.billing')"
         :icon="icons.billing"
         :active-icon="icons.billing"
         done
@@ -14,12 +14,12 @@
       <q-step
         v-if="enabledSteps.includes('terms')"
         :name="stepIndex('terms')"
-        :title="$tc('signup.termsAcceptance')"
+        :title="$t('signup.termsAcceptance')"
         :icon="icons.terms"
         :active-icon="icons.terms"
         :done="step > stepIndex('terms')"
       >
-        <div class="text-h6 q-py-md">{{ $tc('signup.acceptTerms') }}</div>
+        <div class="text-h6 q-py-md">{{ $t('signup.acceptTerms') }}</div>
         <div class="row">
           <terms-acceptance-card
             v-for="(card, i) in termsAcceptanceCards"
@@ -40,7 +40,7 @@
             :loading="termsSubmitting"
             @click="submitTerms"
             color="primary"
-            :label="$tc('button.continue')"
+            :label="$t('button.continue')"
           />
         </div>
       </q-step>
@@ -48,13 +48,13 @@
       <q-step
         v-if="enabledSteps.includes('induction')"
         :name="stepIndex('induction')"
-        :title="$tc('signup.induction')"
+        :title="$t('signup.induction')"
         :icon="icons.induction"
         :active-icon="icons.induction"
         :done="step > stepIndex('induction')"
       >
         <div class="text-h6 q-py-md">
-          {{ $tc('signup.completeInduction') }}
+          {{ $t('signup.completeInduction') }}
         </div>
         <div class="row items-stretch">
           <div style="width: 100%">
@@ -88,7 +88,7 @@
                   :href="provider.actionUrl"
                   target="_blank"
                   color="primary"
-                  :label="$tc('signup.startInduction')"
+                  :label="$t('signup.startInduction')"
                 />
               </q-item-section>
             </q-item>
@@ -114,7 +114,7 @@
             @click="inductionCompleted()"
             :disable="!inductionComplete"
             color="primary"
-            :label="$tc('button.continue')"
+            :label="$t('button.continue')"
           />
         </div>
       </q-step>
@@ -122,13 +122,13 @@
       <q-step
         v-if="enabledSteps.includes('accessCard')"
         :name="stepIndex('accessCard')"
-        :title="$tc('signup.accessCard')"
+        :title="$t('signup.accessCard')"
         :icon="icons.accessCard"
         :active-icon="icons.accessCard"
         :done="step > stepIndex('accessCard')"
       >
         <div class="text-h6 q-py-md">
-          {{ $tc('signup.assignAccessCard') }}
+          {{ $t('signup.assignAccessCard') }}
         </div>
 
         <template v-if="features.signup.memberCanEnterAccessCard">
@@ -165,7 +165,7 @@
               :disable="accessCardLoading"
               @click="submitAccessCard"
               color="primary"
-              :label="$tc('button.continue')"
+              :label="$t('button.continue')"
             />
           </div>
         </template>
@@ -184,7 +184,7 @@
               :href="features.signup.postInductionUrl"
               target="_blank"
               color="primary"
-              :label="$tc('button.contactUs')"
+              :label="$t('button.contactUs')"
             />
           </div>
         </template>
@@ -192,15 +192,15 @@
 
       <q-step
         :name="stepIndex('confirm')"
-        :title="$tc('confirm')"
+        :title="$t('confirm')"
         :icon="icons.success"
         :active-icon="icons.success"
         :done="step >= stepIndex('confirm')"
       >
         <template v-if="awaitingPayment">
           <q-banner class="bg-info text-white">
-            <div class="text-h5">{{ $tc('signup.awaitingPaymentTitle') }}</div>
-            <p>{{ $tc('signup.awaitingInvoicePayment') }}</p>
+            <div class="text-h5">{{ $t('signup.awaitingPaymentTitle') }}</div>
+            <p>{{ $t('signup.awaitingInvoicePayment') }}</p>
           </q-banner>
 
           <div class="row justify-start q-mt-md">
@@ -208,14 +208,14 @@
             <q-btn
               :to="{ name: 'dashboard' }"
               color="primary"
-              :label="$tc('signup.continueToDashboard')"
+              :label="$t('signup.continueToDashboard')"
             />
           </div>
         </template>
 
         <template v-else-if="signupError">
           <div class="text-h6 q-py-md">
-            {{ $tc('signup.error') }}
+            {{ $t('signup.error') }}
           </div>
 
           <div style="width: 100%">
@@ -236,10 +236,10 @@
         <template v-else>
           <div class="text-h6 q-py-md">
             {{
-              $tc(
+              $t(
                 applicationEmailEnabled
                   ? 'signup.submitted'
-                  : 'signup.submittedNoEmail'
+                  : 'signup.submittedNoEmail',
               )
             }}
           </div>
@@ -251,7 +251,7 @@
                   $t(
                     applicationEmailEnabled
                       ? 'signup.submittedDescription'
-                      : 'signup.submittedDescriptionNoEmail'
+                      : 'signup.submittedDescriptionNoEmail',
                   )
                 }}
               </p>
@@ -267,7 +267,7 @@
             <q-btn
               :to="{ name: 'dashboard' }"
               color="primary"
-              :label="$tc('signup.continueToDashboard')"
+              :label="$t('signup.continueToDashboard')"
             />
           </div>
         </template>
@@ -477,8 +477,8 @@ export default defineComponent({
         this.advanceFrom('terms');
       } catch {
         this.$q.dialog({
-          title: this.$tc('error.error'),
-          message: this.$tc('signup.termsAcceptError'),
+          title: this.$t('error.error'),
+          message: this.$t('signup.termsAcceptError'),
         });
       } finally {
         this.termsSubmitting = false;
@@ -506,8 +506,8 @@ export default defineComponent({
     },
     showAccessCardError(messageKey) {
       this.$q.dialog({
-        title: this.$tc('error.error'),
-        message: messageKey ? this.$t(messageKey) : this.$tc('error.contactUs'),
+        title: this.$t('error.error'),
+        message: messageKey ? this.$t(messageKey) : this.$t('error.contactUs'),
       });
     },
   },

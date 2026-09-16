@@ -41,7 +41,7 @@
           <q-list dense>
             <q-item
               v-for="col in props.cols.filter(
-                (col) => col.name !== 'desc' && col.name !== 'id'
+                (col) => col.name !== 'desc' && col.name !== 'id',
               )"
               :key="col.name"
             >

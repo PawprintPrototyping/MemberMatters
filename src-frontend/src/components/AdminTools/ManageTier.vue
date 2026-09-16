@@ -445,16 +445,16 @@ export default defineComponent({
             return;
           }
           this.$q.dialog({
-            title: this.$tc('error.error'),
-            message: this.$tc('error.requestFailed'),
+            title: this.$t('error.error'),
+            message: this.$t('error.requestFailed'),
           });
         });
     },
     removeTier() {
       this.$q
         .dialog({
-          title: this.$tc('confirmAction'),
-          message: this.$tc('confirmRemove'),
+          title: this.$t('confirmAction'),
+          message: this.$t('confirmRemove'),
           cancel: true,
           persistent: true,
         })
@@ -466,8 +466,8 @@ export default defineComponent({
             })
             .catch(() => {
               this.$q.dialog({
-                title: this.$tc('error.error'),
-                message: this.$tc('error.requestFailed'),
+                title: this.$t('error.error'),
+                message: this.$t('error.requestFailed'),
               });
             });
         });
@@ -517,8 +517,8 @@ export default defineComponent({
         })
         .catch(() => {
           this.$q.dialog({
-            title: this.$tc('error.error'),
-            message: this.$tc('error.requestFailed'),
+            title: this.$t('error.error'),
+            message: this.$t('error.requestFailed'),
           });
         });
     },
@@ -549,8 +549,8 @@ export default defineComponent({
     removePlan() {
       this.$q
         .dialog({
-          title: this.$tc('confirmAction'),
-          message: this.$tc('confirmRemove'),
+          title: this.$t('confirmAction'),
+          message: this.$t('confirmRemove'),
           cancel: true,
           persistent: true,
         })
@@ -563,8 +563,8 @@ export default defineComponent({
             })
             .catch(() => {
               this.$q.dialog({
-                title: this.$tc('error.error'),
-                message: this.$tc('error.requestFailed'),
+                title: this.$t('error.error'),
+                message: this.$t('error.requestFailed'),
               });
             });
         });

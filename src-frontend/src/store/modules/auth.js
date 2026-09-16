@@ -1,5 +1,5 @@
 import 'axios';
-import { Storage } from '@capacitor/storage';
+import { Preferences } from '@capacitor/preferences';
 
 export default {
   namespaced: true,
@@ -13,8 +13,9 @@ export default {
   },
   actions: {
     async retrieveAuth({ commit }) {
-      const accessToken = await Storage.get({ key: 'accessToken' });
-      const refreshToken = await Storage.get({ key: 'refreshToken' });
+      await Preferences.migrate();
+      const accessToken = await Preferences.get({ key: 'accessToken' });
+      const refreshToken = await Preferences.get({ key: 'refreshToken' });
       commit('setAuth', {
         access: accessToken.value,
         refresh: refreshToken.value,
@@ -25,7 +26,7 @@ export default {
     async setAuth(state, payload) {
       if (payload.access || payload.access === '') {
         state.accessToken = payload.access;
-        await Storage.set({
+        await Preferences.set({
           key: 'accessToken',
           value: payload.access,
         });
@@ -33,7 +34,7 @@ export default {
 
       if (payload.refresh || payload.refresh === '') {
         state.refreshToken = payload.refresh;
-        await Storage.set({
+        await Preferences.set({
           key: 'refreshToken',
           value: payload.refresh,
         });

@@ -62,7 +62,7 @@ Many of the sensors do not have any extra properties.  Updating these is simple,
 ```json
 {
     "sensors": [
-        { 
+        {
             "type": "temperature",
             "name": "test_sensor",
             "location": "default",
@@ -79,7 +79,7 @@ Want to update more than one sensor at a time? No worries, just add to the array
 ```json
 {
     "sensors": [
-        { 
+        {
             "type": "temperature",
             "name": "test_sensor",
             "location": "default",
@@ -87,7 +87,7 @@ Want to update more than one sensor at a time? No worries, just add to the array
             "unit": "°C",
             "value": 21.0
         },
-        { 
+        {
             "type": "humidity",
             "name": "test_sensor",
             "location": "default",
@@ -106,7 +106,7 @@ For those sensors that do have properties, only a few extra fields are required:
 ```json
 {
     "sensors": [
-        { 
+        {
             "type": "wind",
             "name": "wind_sensor_01",
             "location": "The Roof",
@@ -129,7 +129,7 @@ As with the sensors, additional properties can be created by adding more diction
 ```json
 {
     "sensors": [
-        { 
+        {
             "type": "wind",
             "name": "wind_sensor_01",
             "location": "The Roof",
@@ -160,7 +160,7 @@ The following JSON updates the space status to "Open", sets a message advising t
 {   "is_open": true,
     "message": "Soldering workshop tonight - 8pm to 10pm"
     "sensors": [
-        { 
+        {
             "type": "temperature",
             "name": "test_sensor",
             "location": "default",
@@ -168,7 +168,7 @@ The following JSON updates the space status to "Open", sets a message advising t
             "unit": "°C",
             "value": 21.0
         },
-        { 
+        {
             "type": "wind",
             "name": "wind_sensor_01",
             "location": "The Roof",
