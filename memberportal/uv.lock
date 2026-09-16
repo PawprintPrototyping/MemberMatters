@@ -145,15 +145,6 @@ wheels = [
 ]
 
 [[package]]
-name = "async-timeout"
-version = "5.0.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/a5/ae/136395dfbfe00dfc94da3f3e136d0b13f394cba8f4841120e34226265780/async_timeout-5.0.1.tar.gz", hash = "sha256:d9321a7a3d5a6a5e187e824d2fa0793ce379a202935782d555d6e9d2735677d3", size = 9274, upload-time = "2024-11-06T16:41:39.6Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/fe/ba/e2081de779ca30d473f21f5b30e0e737c438205440784c7dfc81efc2b029/async_timeout-5.0.1-py3-none-any.whl", hash = "sha256:39e3809566ff85354557ec2398b55e096c8364bacac9405a7a1fa429e77fe76c", size = 6233, upload-time = "2024-11-06T16:41:37.9Z" },
-]
-
-[[package]]
 name = "attrs"
 version = "26.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -988,19 +979,19 @@ requires-dist = [
     { name = "postmarker", specifier = "~=1.0" },
     { name = "prometheus-client", specifier = ">=0.20,<0.27" },
     { name = "psycopg2-binary", specifier = "~=2.9.9" },
-    { name = "pwned-passwords-django", specifier = "~=2.1" },
+    { name = "pwned-passwords-django", specifier = ">=2.1,<6.0" },
     { name = "python-dateutil", specifier = "~=2.9.0" },
     { name = "python-http-client", specifier = "~=3.3.7" },
-    { name = "redis", specifier = "~=4.3.1" },
+    { name = "redis", specifier = ">=4.3.1,<8.2.0" },
     { name = "requests", specifier = ">=2.32.3,<2.35.0" },
     { name = "sentry-sdk", specifier = "==2.69.1" },
-    { name = "stripe", specifier = "~=9.8.0" },
+    { name = "stripe", specifier = ">=9.8,<15.7" },
     { name = "twilio", specifier = ">=9.1,<9.12" },
     { name = "zeroconf", specifier = ">=0.132.2,<0.152.0" },
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pre-commit", specifier = "==3.7.1" }]
+dev = [{ name = "pre-commit", specifier = "==4.6.2" }]
 
 [[package]]
 name = "msgpack"
@@ -1207,7 +1198,7 @@ wheels = [
 
 [[package]]
 name = "pre-commit"
-version = "3.7.1"
+version = "4.6.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cfgv" },
@@ -1216,9 +1207,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "virtualenv" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/aa/46/cc214ef6514270328910083d0119d0a80a6d2c4ec8c6608c0219db0b74cf/pre_commit-3.7.1.tar.gz", hash = "sha256:8ca3ad567bc78a4972a3f1a477e94a79d4597e8140a6e0b651c5e33899c3654a", size = 177317, upload-time = "2024-05-11T01:25:19.473Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/74/89/1f3e8e1fc3e97de0fa963495832f581f025f29471602a309e48808244292/pre_commit-4.6.2.tar.gz", hash = "sha256:8f5d7bfb021ecdbcd9d49d89847082dd24172ccde534390081a679ad046e2441", size = 198670, upload-time = "2026-08-10T22:07:18.421Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b9/0f/d6d0b4e2f5b2933a557087fc0560371aa545a18232d4d3427eb3bb3af12e/pre_commit-3.7.1-py2.py3-none-any.whl", hash = "sha256:fae36fd1d7ad7d6a5a1c0b0d5adb2ed1a3bda5a21bf6c3e5372073d7a11cd4c5", size = 204268, upload-time = "2024-05-11T01:25:16.845Z" },
+    { url = "https://files.pythonhosted.org/packages/45/e2/bbb7129c9e7999a6b8ee9cca3b66486c25c423ab5a75f34071798b74ce94/pre_commit-4.6.2-py2.py3-none-any.whl", hash = "sha256:e2dde9a75d3bce11bd3831c26d134df00a2803c1d818be6a0383c3dcda25dc4e", size = 226202, upload-time = "2026-08-10T22:07:16.942Z" },
 ]
 
 [[package]]
@@ -1306,15 +1297,15 @@ wheels = [
 
 [[package]]
 name = "pwned-passwords-django"
-version = "2.1"
+version = "5.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
     { name = "httpx" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a6/4b/6bc8dafb24154935ddae31225c45fe189cdd03ba7fdeeab21a81c1ad541f/pwned-passwords-django-2.1.tar.gz", hash = "sha256:9c76a9f47261507dd29da5e4937462bba0dbfa7045ce0d0fcdb51c610dba8ac5", size = 36136, upload-time = "2024-02-27T07:47:44.98Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ae/f5/242f5ceb391832d284c815135f99872ad2f109aaa8b398bcf9cbe3665bd6/pwned_passwords_django-5.2.0.tar.gz", hash = "sha256:dfa7c4fc8879396b8304759260c5fb8b6055c07ed9241010e5bc319f195d5197", size = 43089, upload-time = "2025-04-06T07:58:17.973Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f9/03/756fd56ca70379f43be306bf24f15f3be27179e97ac381bb4c8ee537f29c/pwned_passwords_django-2.1-py3-none-any.whl", hash = "sha256:09cd29d3699bfea9f4a367e92a9eb106bfc09eefb873e58c15e5f48800992f8e", size = 12242, upload-time = "2024-02-27T07:47:43.125Z" },
+    { url = "https://files.pythonhosted.org/packages/0d/9b/dbbeb3e72501190584847e5d6b119b5e4f1e15b11a804c4e2ccbca438f2f/pwned_passwords_django-5.2.0-py3-none-any.whl", hash = "sha256:a8666fb427479796ee9940e92df834a188ca7246905e4b9dc7be6248415ff5df", size = 11712, upload-time = "2025-04-06T07:58:16.599Z" },
 ]
 
 [[package]]
@@ -1417,15 +1408,11 @@ wheels = [
 
 [[package]]
 name = "redis"
-version = "4.3.6"
+version = "8.1.0"
 source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "async-timeout" },
-    { name = "packaging" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/f2/52/2a4b3ceffe59483cdea5e653aaa40ebd7a90241612c40212dfc10fde9215/redis-4.3.6.tar.gz", hash = "sha256:7a462714dcbf7b1ad1acd81f2862b653cc8535cdfc879e28bf4947140797f948", size = 4577771, upload-time = "2023-03-22T16:24:20.179Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a8/99/604f0b666d4c616d891cf77ebb9db6bb21601344c051aebf1b72b9ff915f/redis-8.1.0.tar.gz", hash = "sha256:6e1a19beef9225c83efd689c7e6b7da2d5215b1f42cd13b7fc3714d0a09c7b25", size = 5254356, upload-time = "2026-07-30T08:51:00.269Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d6/f6/19237b28c632935c7359bddf703395ba13bbd134fc5e2eb297c4c120398c/redis-4.3.6-py3-none-any.whl", hash = "sha256:1ea4018b8b5d8a13837f0f1c418959c90bfde0a605cb689e8070cff368a3b177", size = 248834, upload-time = "2023-03-22T16:24:16.398Z" },
+    { url = "https://files.pythonhosted.org/packages/66/9d/c5731f6e3608663d4d3656fd8d3aecee8b509c3082818f5a13eae925baea/redis-8.1.0-py3-none-any.whl", hash = "sha256:a4fe1aac3d3b3cc791d4b3d5931c5a956045dc951ee74d1c913ee3ac4d2ee9fb", size = 560618, upload-time = "2026-07-30T08:50:58.497Z" },
 ]
 
 [[package]]
@@ -1489,15 +1476,15 @@ wheels = [
 
 [[package]]
 name = "stripe"
-version = "9.8.0"
+version = "15.6.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "requests" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/34/13/58d4242fef793dc8cefeeb1a6145bfcdd45ffeba050d23ee96984049fa79/stripe-9.8.0.tar.gz", hash = "sha256:63161fca746cb6a81e2158bf61950ccb8d75f1b7231c7f4ac9e05817aab586b4", size = 1268721, upload-time = "2024-05-23T20:30:30.551Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1e/a6/02ea2b4e1b57913ae2e68801bf2168120bec97206782a781599339abfd64/stripe-15.6.1.tar.gz", hash = "sha256:9f3986aa960419041aba9c76191746bdf2c342c95892acfbf6edb500ab006d31", size = 1569005, upload-time = "2026-09-01T18:44:41.751Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/08/b6/5b49eb77dd565f64e433642eb110f67114f9ce59db133f791a4926ab80ed/stripe-9.8.0-py2.py3-none-any.whl", hash = "sha256:f630bcf47d49beaad02feba0109784bc016b5e0c974272da6fdf590a0f7ec8a9", size = 1508484, upload-time = "2024-05-23T20:30:25.377Z" },
+    { url = "https://files.pythonhosted.org/packages/a9/4b/cd2d7ad83a3f49300cb3cc69ae102de68de792035bf31b0383e1c6563ec3/stripe-15.6.1-py3-none-any.whl", hash = "sha256:b33e1ea76462d7289e5fe755a1132b82099151bfb31e961021655471e6d216bf", size = 2218765, upload-time = "2026-09-01T18:44:39.706Z" },
 ]
 
 [[package]]
