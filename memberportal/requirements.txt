@@ -37,7 +37,7 @@ automat==25.4.16
     # via twisted
 billiard==4.2.4
     # via celery
-cbor2==5.9.0
+cbor2==6.1.4
     # via autobahn
 celery==5.6.3
     # via
@@ -77,7 +77,7 @@ click-repl==0.3.0
     # via celery
 constantly==23.10.4
     # via twisted
-cron-descriptor==1.4.5
+cron-descriptor==2.1.0
     # via django-celery-beat
 cryptography==50.0.1
     # via
@@ -205,7 +205,7 @@ propcache==0.5.4
     #   yarl
 psycopg2-binary==2.9.13
     # via membermatters
-pwned-passwords-django==2.1
+pwned-passwords-django==5.2.0
     # via membermatters
 pycparser==3.0 ; implementation_name != 'PyPy'
     # via cffi
@@ -230,7 +230,7 @@ python-dateutil==2.9.0.post0
     #   membermatters
 python-http-client==3.3.7
     # via membermatters
-redis==4.3.6
+redis==8.1.0
     # via
     #   channels-redis
     #   membermatters
@@ -254,7 +254,7 @@ six==1.17.0
     #   python-dateutil
 sqlparse==0.6.0
     # via django
-stripe==9.8.0
+stripe==15.6.1
     # via membermatters
 tablib==3.10.0
     # via django-import-export
