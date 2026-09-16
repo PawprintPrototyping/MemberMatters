@@ -31,7 +31,7 @@
     "@rollup/plugin-inject": "^5.0.3",
     "@sentry/vue": "^8.55.2",
     "@stripe/stripe-js": "^1.29.0",
-    "address": "^1.1.2",
+    "address": "^2.0.3",
     "animate.css": "^4.1.1",
     "apexcharts": "^5.10.0",
     "axios": "^0.26.1",
