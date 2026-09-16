@@ -3,11 +3,7 @@
     <div v-if="loggedIn" class="dashboard-root">
       <div class="column flex content-start justify-center">
         <q-banner
-          v-if="
-            profile.lastInduction === null &&
-            (features.signup.enableInduction ||
-              features.enableDocusealMemberDocs)
-          "
+          v-if="profile.induction && !profile.induction.complete"
           inline-actions
           rounded
           class="bg-red text-white q-ma-md"

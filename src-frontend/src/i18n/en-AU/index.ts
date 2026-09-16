@@ -687,6 +687,23 @@ export default {
     canvasEmailWarning:
       "Please use the same email address you used during signup ({email}) or your progress won't sync. This is a limitation of the Canvas platform.",
     waitingCompletion: 'Waiting for completion...',
+    inductionProvider: {
+      canvas: 'Canvas induction',
+      moodle: 'Moodle induction',
+      docuseal: 'Membership agreement',
+    },
+    inductionProviderComplete: 'Completed',
+    inductionProviderPending: 'Waiting for completion...',
+    canvasPending: 'Complete the configured Canvas course to continue.',
+    canvasUnavailable:
+      'We could not reach Canvas to check your induction. Please try again shortly.',
+    moodlePending: 'Complete the configured Moodle course to continue.',
+    docusealPending: 'Sign the membership agreement to continue.',
+    docusealDeclined:
+      'The membership agreement was declined. Contact an administrator to continue.',
+    docusealUnavailable:
+      'We could not reach DocuSeal to check your agreement. Please try again shortly.',
+    reverificationRequired: 'Your induction needs to be checked again.',
     accessCard: 'Access Card',
     accessCardNumber: 'Access Card Number',
     assignAccessCard: 'Access Card',

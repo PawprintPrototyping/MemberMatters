@@ -129,7 +129,7 @@
             <q-item-section>
               <q-item-label>
                 <a :href="selectedMember.memberdocsLink" target="_blank">
-                  <div v-if="selectedMember.lastInduction">Complete</div>
+                  <div v-if="docusealComplete">Complete</div>
                   <div v-else>Incomplete</div>
                 </a>
               </q-item-label>
@@ -958,6 +958,13 @@ export default defineComponent({
     },
     selectedMember(): MemberProfile {
       return this.member as MemberProfile;
+    },
+    docusealComplete(): boolean {
+      return Boolean(
+        this.selectedMember.induction?.providers.find(
+          (provider) => provider.provider === 'docuseal'
+        )?.complete
+      );
     },
     // A settled non-member: not active and without a live subscription.
     // Button 2 reads "Make Member" for these; the Lock button is enabled.

@@ -666,6 +666,23 @@ export default {
     canvasEmailWarning:
       'Använd samma email-adress som du hade vid registreringen ({email}) för att dina framsteg ska synkroniseras. Detta är en begränsning i Canvas-plattformen.',
     waitingCompletion: 'Väntar på färdigställande...',
+    inductionProvider: {
+      canvas: 'Canvas-introduktion',
+      moodle: 'Moodle-introduktion',
+      docuseal: 'Medlemsavtal',
+    },
+    inductionProviderComplete: 'Genomförd',
+    inductionProviderPending: 'Väntar på färdigställande...',
+    canvasPending: 'Slutför den konfigurerade Canvas-kursen för att fortsätta.',
+    canvasUnavailable:
+      'Vi kunde inte nå Canvas för att kontrollera din introduktion. Försök igen snart.',
+    moodlePending: 'Slutför den konfigurerade Moodle-kursen för att fortsätta.',
+    docusealPending: 'Signera medlemsavtalet för att fortsätta.',
+    docusealDeclined:
+      'Medlemsavtalet avvisades. Kontakta en administratör för att fortsätta.',
+    docusealUnavailable:
+      'Vi kunde inte nå DocuSeal för att kontrollera ditt avtal. Försök igen snart.',
+    reverificationRequired: 'Din introduktion måste kontrolleras igen.',
     accessCard: 'Nyckelkort',
     accessCardNumber: 'Nummer Nyckelkort',
     assignAccessCard: 'Nyckelkort',
