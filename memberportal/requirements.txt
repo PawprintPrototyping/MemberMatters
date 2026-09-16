@@ -39,7 +39,7 @@ billiard==4.2.4
     # via celery
 cbor2==5.9.0
     # via autobahn
-celery==5.4.0
+celery==5.6.3
     # via
     #   django-celery-beat
     #   django-celery-results
@@ -114,11 +114,11 @@ django-csp==4.0
     # via membermatters
 django-import-export==4.4.1
     # via membermatters
-django-oidc-provider==0.8.4
+django-oidc-provider==0.9.0
     # via membermatters
 django-picklefield==3.4.0
     # via membermatters
-django-prometheus==2.3.1
+django-prometheus==2.5.0
     # via membermatters
 django-timezone-field==7.2.2
     # via django-celery-beat
@@ -144,7 +144,7 @@ httpcore==1.0.9
     # via httpx
 httpx==0.28.1
     # via pwned-passwords-django
-humanize==4.9.0
+humanize==4.16.0
     # via membermatters
 hyperlink==21.0.0
     # via
@@ -193,7 +193,7 @@ pillow==12.3.0
     # via membermatters
 postmarker==1.0
     # via membermatters
-prometheus-client==0.20.0
+prometheus-client==0.26.0
     # via
     #   django-prometheus
     #   membermatters
@@ -234,7 +234,7 @@ redis==4.3.6
     # via
     #   channels-redis
     #   membermatters
-requests==2.32.5
+requests==2.34.2
     # via
     #   mailchimp-marketing
     #   membermatters
@@ -242,7 +242,7 @@ requests==2.32.5
     #   pyjwkest
     #   stripe
     #   twilio
-sentry-sdk==2.3.1
+sentry-sdk==2.69.1
     # via membermatters
 service-identity==26.1.0
     # via twisted
@@ -258,9 +258,9 @@ stripe==9.8.0
     # via membermatters
 tablib==3.10.0
     # via django-import-export
-tatsu==5.15.1
+tatsu==5.24.0
     # via ics
-twilio==9.1.1
+twilio==9.11.1
     # via membermatters
 twisted==26.4.0
     # via daphne
@@ -296,7 +296,7 @@ wcwidth==0.8.3
     # via prompt-toolkit
 yarl==1.25.1
     # via aiohttp
-zeroconf==0.132.2
+zeroconf==0.151.3
     # via membermatters
 zope-interface==8.6
     # via twisted
