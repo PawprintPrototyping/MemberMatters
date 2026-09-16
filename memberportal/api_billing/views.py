@@ -35,6 +35,14 @@ from django.utils import timezone
 logger = logging.getLogger("billing")
 
 
+def _get_subscription_current_period_end(subscription):
+    """Return the current billing-period end from a Stripe subscription."""
+    subscription_items = getattr(getattr(subscription, "items", None), "data", None)
+    if subscription_items:
+        return getattr(subscription_items[0], "current_period_end", None)
+    return getattr(subscription, "current_period_end", None)
+
+
 def ensure_stripe_customer(user):
     """
     Ensures a Stripe customer exists for the given user, creating one if needed.
@@ -829,7 +837,7 @@ class SubscriptionInfo(StripeAPIView):
 
                 subscription = {
                     "billingCycleAnchor": s.billing_cycle_anchor,
-                    "currentPeriodEnd": s.current_period_end,
+                    "currentPeriodEnd": _get_subscription_current_period_end(s),
                     "cancelAt": s.cancel_at,
                     "cancelAtPeriodEnd": s.cancel_at_period_end,
                     "startDate": s.start_date,
