@@ -96,10 +96,18 @@ FROM node:${NODE_VERSION}-trixie AS frontend-builder
 
 WORKDIR /build/frontend
 
-# npm ci layer is cached until package-lock.json changes.
+# Parent SPA dependencies are cached until their lockfile changes.
 COPY src-frontend/package.json src-frontend/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --no-audit --no-fund
+
+# Quasar/Vite resolves Capacitor aliases to this nested project. Keep its
+# install separate so native dependency changes do not invalidate the SPA layer.
+COPY src-frontend/src-capacitor/package.json \
+     src-frontend/src-capacitor/package-lock.json \
+     ./src-capacitor/
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefix ./src-capacitor --no-audit --no-fund
 
 COPY src-frontend/ ./
 COPY package.json /build/package.json
