@@ -360,6 +360,50 @@ class CompleteCancelResult:
     previous_state: str = ""
 
 
+class InductionProviderState(models.Model):
+    """The latest verification of one provider's versioned induction requirement."""
+
+    class Provider(models.TextChoices):
+        CANVAS = "canvas", "Canvas"
+        MOODLE = "moodle", "Moodle"
+        DOCUSEAL = "docuseal", "DocuSeal"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        COMPLETE = "complete", "Complete"
+        DECLINED = "declined", "Declined"
+        UNAVAILABLE = "unavailable", "Unavailable"
+        INVALID_CONFIGURATION = "invalid_configuration", "Invalid configuration"
+
+    profile = models.ForeignKey(
+        "Profile", on_delete=models.CASCADE, related_name="induction_provider_states"
+    )
+    provider = models.CharField(max_length=20, choices=Provider.choices)
+    # Identifies the current course/template and pass policy. A configuration
+    # change creates a distinct requirement instead of reusing stale proof.
+    requirement_key = models.CharField(max_length=255)
+    status = models.CharField(
+        max_length=32, choices=Status.choices, default=Status.PENDING
+    )
+    # A verification may be safely reused only briefly. MAX_INDUCTION_DAYS
+    # separately controls the configured re-induction deadline.
+    completed_at = models.DateTimeField(null=True, blank=True)
+    checked_at = models.DateTimeField(null=True, blank=True)
+    score = models.PositiveSmallIntegerField(null=True, blank=True)
+    error_code = models.CharField(max_length=64, blank=True)
+    # The DocuSeal submission issued for this requirement. Keeping it on the
+    # requirement row prevents a template change from losing its audit trail.
+    external_reference = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["profile", "provider", "requirement_key"],
+                name="unique_profile_induction_requirement",
+            )
+        ]
+
+
 class Profile(ExportModelOperationsMixin("profile"), models.Model):
     STATES = (
         ("noob", "Needs Induction"),
@@ -1014,7 +1058,7 @@ class Profile(ExportModelOperationsMixin("profile"), models.Model):
             return "awaiting_payment"
         return "needs_requirements"
 
-    def get_basic_profile(self):
+    def get_basic_profile(self, induction=None):
         """
         Returns a user's profile with a basic amount of info.
         :return: {}
@@ -1055,6 +1099,7 @@ class Profile(ExportModelOperationsMixin("profile"), models.Model):
                 if self.last_induction
                 else None
             ),
+            "induction": induction or self.get_induction_status(),
             "termsAcceptedAt": (
                 self.terms_accepted_at.strftime("%m/%d/%Y, %H:%M:%S")
                 if self.terms_accepted_at
@@ -1143,8 +1188,14 @@ class Profile(ExportModelOperationsMixin("profile"), models.Model):
 
         return {"doors": doors, "interlocks": interlocks}
 
-    def can_signup(self):
-        """Checks if a member can signup. Returns {"success": True/False, "reasons": [String<list of reasons>]}"""
+    def get_induction_status(self, states=None):
+        """Return the local status of every currently enabled induction provider."""
+        from services.induction import get_status
+
+        return get_status(self, states=states)
+
+    def can_signup(self, induction=None):
+        """Checks whether the member meets every currently configured signup gate."""
         required_steps = []
 
         try:
@@ -1161,35 +1212,23 @@ class Profile(ExportModelOperationsMixin("profile"), models.Model):
         ):
             required_steps.append("subscription")
 
-        # First-time induction is always required when an induction
-        # provider is enabled. MAX_INDUCTION_DAYS only controls *re*-
-        # induction: 0 disables the recurring requirement but does not
-        # let first-timers skip.
-        induction_enabled = (
-            config.CANVAS_INDUCTION_ENABLED
-            or config.MOODLE_INDUCTION_ENABLED
-            or config.ENABLE_DOCUSEAL_INTEGRATION
-        )
-        last_inducted = self.last_induction
-
-        if induction_enabled and last_inducted is None:
+        # Every enabled provider has an independent, versioned completion
+        # record. Removing a provider from configuration excludes it
+        # immediately; enabling/changing one creates a new pending requirement.
+        induction = induction or self.get_induction_status()
+        if not induction["complete"]:
             required_steps.append("induction")
-        elif induction_enabled and config.MAX_INDUCTION_DAYS > 0:
-            furthest_previous_date = timezone.now() - timedelta(
-                days=config.MAX_INDUCTION_DAYS
-            )
-            if last_inducted < furthest_previous_date:
-                required_steps.append("induction")
 
         # check if they have an RFID card assigned (only if required by config)
         if config.REQUIRE_ACCESS_CARD and not self.rfid:
             required_steps.append("accessCard")
 
-        if len(required_steps):
-            return {"success": False, "requiredSteps": required_steps}
-
-        else:
-            return {"success": True, "requiredSteps": []}
+        result = {
+            "success": not required_steps,
+            "requiredSteps": required_steps,
+            "requirements": {"induction": induction},
+        }
+        return result
 
     def save(self, *args, **kwargs):
         """On save, update timestamps"""

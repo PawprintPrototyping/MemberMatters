@@ -323,7 +323,7 @@ CONSTANCE_CONFIG = {
     # Induction
     "MOODLE_INDUCTION_ENABLED": (
         False,
-        "Whether induction is performed via the Moodle platform or not. This setting overrides the Canvas settings below. If both are enabled, Moodle will be used.",
+        "Require Moodle course completion as one induction provider. When multiple induction providers are enabled, members must complete each enabled provider.",
     ),
     "MOODLE_API_BASE_URL": (
         "PLEASE_CHANGE_ME",
@@ -339,7 +339,7 @@ CONSTANCE_CONFIG = {
     ),
     "CANVAS_INDUCTION_ENABLED": (
         False,
-        "Whether induction is performed via the Canvas platform or not. This setting is overriden by the Moodle settings above. If both are enabled, Moodle will be used.",
+        "Require Canvas course completion as one induction provider. When multiple induction providers are enabled, members must complete each enabled provider.",
     ),
     "CANVAS_API_TOKEN": (
         "PLEASE_CHANGE_ME",
@@ -355,7 +355,7 @@ CONSTANCE_CONFIG = {
     ),
     "MAX_INDUCTION_DAYS": (
         180,
-        "The maximum amount of days since a member was last inducted before they have to complete another induction (0 disables re-induction; first-time induction is still required).",
+        "Maximum age of a verified induction-provider completion before it must be checked again (0 disables the recurring requirement; first-time completion remains required).",
     ),
     "MIN_INDUCTION_SCORE": (
         99,

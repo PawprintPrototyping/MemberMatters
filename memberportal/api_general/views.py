@@ -25,8 +25,6 @@ from services.discord import post_kiosk_swipe_to_discord
 from services.docuseal import (
     create_submission_for_subscription,
     get_docuseal_submission,
-    submission_is_complete,
-    submission_is_declined,
 )
 import base64
 from urllib.parse import parse_qs, urlencode
@@ -70,7 +68,8 @@ class GetConfig(APIView):
             "signup": {
                 "inductionLink": config.INDUCTION_ENROL_LINK,
                 "enableInduction": config.MOODLE_INDUCTION_ENABLED
-                or config.CANVAS_INDUCTION_ENABLED,
+                or config.CANVAS_INDUCTION_ENABLED
+                or config.ENABLE_DOCUSEAL_INTEGRATION,
                 "requireAccessCard": config.REQUIRE_ACCESS_CARD,
                 "memberCanEnterAccessCard": config.MEMBER_CAN_ENTER_ACCESS_CARD,
                 "postInductionUrl": config.POST_INDUCTION_URL,
@@ -522,29 +521,17 @@ class ProfileDetail(generics.GenericAPIView):
             except:
                 pass
 
-        # append induction link(s) if user has not been inducted
-        response["inductionLink"] = []
-        if p.last_induction is None:
-            if (
-                config.MOODLE_INDUCTION_ENABLED or config.CANVAS_INDUCTION_ENABLED
-            ) and config.INDUCTION_ENROL_LINK:
-                response["inductionLink"].append(config.INDUCTION_ENROL_LINK)
-
-            if config.ENABLE_DOCUSEAL_INTEGRATION:
-                # TODO the following removed with a webhook callback from DocuSeal on submission signing
-                submission = get_docuseal_submission(p)
-                if submission is not None:
-                    if submission_is_complete(submission):
-                        # in the event our induction process is *just* DocuSeal and the doc is signed, update unduction status
-                        if not (
-                            config.MOODLE_INDUCTION_ENABLED
-                            or config.CANVAS_INDUCTION_ENABLED
-                        ):
-                            p.update_last_induction()
-                            response["lastInduction"] = p.last_induction
-                    elif not submission_is_declined(submission) and p.memberdoc_url:
-                        response["inductionLink"].append(p.memberdoc_url)
-                    # remainder state is "declined"
+        # Induction links and banner state now derive from independent local
+        # provider checks. Profile reads never query external providers or
+        # mutate authorization state.
+        induction = p.get_induction_status()
+        response["induction"] = induction
+        response["inductionLink"] = [
+            provider["actionUrl"]
+            for provider in induction["providers"]
+            if not provider["complete"] and provider["actionUrl"]
+        ]
+        # remainder state is "declined"
 
         return Response(response)
 

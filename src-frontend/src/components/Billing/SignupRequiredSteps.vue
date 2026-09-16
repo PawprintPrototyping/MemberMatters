@@ -58,64 +58,54 @@
         </div>
         <div class="row items-stretch">
           <div style="width: 100%">
-            <p>
-              {{ $t('signup.completeInductionDescription') }}
-            </p>
-
-            <p
-              v-if="
-                features.signup.inductionLink.includes('canvas.instructure.com')
-              "
-            >
-              <b>
-                {{ $t('signup.canvasEmailWarning', { email: profile.email }) }}
-              </b>
-            </p>
+            <p>{{ $t('signup.completeInductionDescription') }}</p>
           </div>
 
-          <template v-if="!inductionComplete">
-            <div>
-              <p>
-                <a
-                  v-if="
-                    features.signup.inductionLink.includes(
-                      'canvas.instructure.com'
-                    )
-                  "
-                  :href="features.signup.inductionLink"
-                  target="_blank"
-                >
-                  <img
-                    class="q-pa-sm rounded-borders"
-                    style="max-height: 70px; border: 1px solid"
-                    src="@assets/img/canvas.png"
-                  />
-                </a>
-
+          <q-list bordered separator class="full-width">
+            <q-item
+              v-for="provider in inductionProviders"
+              :key="provider.provider"
+            >
+              <q-item-section avatar>
+                <q-icon
+                  :name="provider.complete ? icons.success : icons.induction"
+                  :color="provider.complete ? 'positive' : 'primary'"
+                />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>{{
+                  providerLabel(provider.provider)
+                }}</q-item-label>
+                <q-item-label caption>{{
+                  providerStatus(provider)
+                }}</q-item-label>
+              </q-item-section>
+              <q-item-section
+                side
+                v-if="provider.actionUrl && !provider.complete"
+              >
                 <q-btn
-                  v-else
-                  :href="features.signup.inductionLink"
+                  :href="provider.actionUrl"
                   target="_blank"
                   color="primary"
                   :label="$tc('signup.startInduction')"
                 />
-              </p>
-              <p>
-                {{ $t('signup.waitingCompletion') }} <br />
-                {{ $t('progress', { percent: inductionScore }) }}
-              </p>
-              <q-spinner size="2em"></q-spinner>
-            </div>
-          </template>
+              </q-item-section>
+            </q-item>
+          </q-list>
 
-          <template v-else>
-            <div class="q-pt-md">
-              <p>
-                {{ $t('signup.completedInduction') }}
-              </p>
-              <q-icon color="success" size="2em" :name="icons.success" />
-            </div>
-          </template>
+          <div v-if="!inductionComplete" class="q-pt-md">
+            <p>
+              {{ $t('signup.waitingCompletion') }}<br />
+              {{ $t('progress', { percent: inductionScore }) }}
+            </p>
+            <q-spinner size="2em" />
+          </div>
+
+          <div v-else class="q-pt-md">
+            <p>{{ $t('signup.completedInduction') }}</p>
+            <q-icon color="success" size="2em" :name="icons.success" />
+          </div>
         </div>
 
         <div class="row justify-start q-mt-md">
@@ -311,6 +301,14 @@ export default defineComponent({
       signupErrorItems: [],
       awaitingPayment: false,
       inductionScore: 0,
+      inductionProviders: [] as Array<{
+        provider: string;
+        status: string;
+        complete: boolean;
+        score: number | null;
+        errorCode: string;
+        actionUrl: string;
+      }>,
       acceptedFlags: new Array(cards.length).fill(false) as boolean[],
       termsSubmitting: false,
       termsAccepted: false,
@@ -402,13 +400,38 @@ export default defineComponent({
       }
     },
     async updateInductionStatus() {
-      let result = await api.post('/api/billing/check-induction/');
-      this.inductionComplete = result.data.success;
-      this.inductionScore = Math.floor(result.data.score);
+      try {
+        const result = await api.post('/api/billing/check-induction/');
+        this.inductionComplete = result.data.success;
+        this.inductionScore = Math.floor(result.data.score || 0);
+        this.inductionProviders = result.data.induction?.providers || [];
 
-      if (this.inductionComplete || result.data.notRequired) {
-        this.inductionCompleted();
+        if (this.inductionComplete || result.data.notRequired) {
+          this.inductionCompleted();
+        }
+      } catch {
+        this.inductionComplete = false;
       }
+    },
+    providerLabel(provider: string) {
+      return this.$t(`signup.inductionProvider.${provider}`);
+    },
+    providerStatus(provider: {
+      status: string;
+      complete: boolean;
+      errorCode: string;
+      score: number | null;
+    }) {
+      if (provider.complete) {
+        return this.$t('signup.inductionProviderComplete');
+      }
+      if (provider.errorCode) {
+        return this.$t(`signup.${provider.errorCode}`);
+      }
+      if (provider.score !== null) {
+        return this.$t('progress', { percent: provider.score });
+      }
+      return this.$t('signup.inductionProviderPending');
     },
     inductionCompleted() {
       // Guard against a late poll firing after can-signup already
