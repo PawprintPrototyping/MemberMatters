@@ -695,6 +695,7 @@ class Profile(ExportModelOperationsMixin("profile"), models.Model):
             # writes to other columns (e.g. webhook clearing stripe_*).
             self.state = "inactive"
             self.save(update_fields=["state"])
+            queue_listmonk_member_sync(self, "inactive")
 
         if on_transition is not None:
             try:
@@ -906,6 +907,7 @@ class Profile(ExportModelOperationsMixin("profile"), models.Model):
             # See deactivate() for why update_fields is required here.
             self.state = "active"
             self.save(update_fields=["state"])
+            queue_listmonk_member_sync(self, "active")
 
         # Fires only for the caller whose lock won the state flip — gives
         # callers a single-shot hook for trigger-specific side effects
@@ -1206,3 +1208,72 @@ class Profile(ExportModelOperationsMixin("profile"), models.Model):
         if update_fields and "modified" not in update_fields:
             kwargs["update_fields"] = list(update_fields) + ["modified"]
         return super(Profile, self).save(*args, **kwargs)
+
+
+class ListmonkMemberSyncOutbox(models.Model):
+    id = models.AutoField(primary_key=True)
+    STATES = (
+        ("active", "Active"),
+        ("inactive", "Inactive"),
+    )
+
+    profile = models.OneToOneField(
+        Profile,
+        on_delete=models.CASCADE,
+        related_name="listmonk_sync",
+    )
+    desired_state = models.CharField(max_length=8, choices=STATES)
+    revision = models.PositiveIntegerField(default=1)
+    pending = models.BooleanField(default=True)
+    remote_subscriber_id = models.PositiveIntegerField(blank=True, null=True)
+    attempt_count = models.PositiveIntegerField(default=0)
+    last_attempt_at = models.DateTimeField(blank=True, null=True)
+    last_error = models.TextField(blank=True)
+    synced_at = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+def queue_listmonk_member_sync(profile, desired_state):
+    if desired_state not in {"active", "inactive"}:
+        raise ValueError(f"Unsupported Listmonk member state: {desired_state}")
+
+    outbox, created = ListmonkMemberSyncOutbox.objects.get_or_create(
+        profile=profile,
+        defaults={"desired_state": desired_state},
+    )
+    if not created:
+        outbox.desired_state = desired_state
+        outbox.revision += 1
+        outbox.pending = True
+        outbox.attempt_count = 0
+        outbox.last_error = ""
+        outbox.synced_at = None
+        outbox.save(
+            update_fields=[
+                "desired_state",
+                "revision",
+                "pending",
+                "attempt_count",
+                "last_error",
+                "synced_at",
+                "updated_at",
+            ]
+        )
+
+    def enqueue(outbox_id=outbox.pk):
+        if not config.ENABLE_LISTMONK_SYNC:
+            return
+        try:
+            from profile.tasks import sync_listmonk_member
+
+            sync_listmonk_member.delay(outbox_id)
+        except Exception as error:
+            logger.exception(
+                "Unable to enqueue Listmonk synchronization for profile %s",
+                profile.pk,
+            )
+            capture_exception(error)
+
+    transaction.on_commit(enqueue)
+    return outbox

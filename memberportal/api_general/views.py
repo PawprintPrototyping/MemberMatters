@@ -13,7 +13,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction, IntegrityError
 from django.utils import timezone
 import datetime
-from profile.models import User, Profile
+from profile.models import User, Profile, queue_listmonk_member_sync
 from profile.phone import to_e164
 
 from rest_framework import status, permissions, generics, serializers
@@ -627,6 +627,8 @@ class ProfileDetail(generics.GenericAPIView):
                 # stale full-row save. Profile.save() rides `modified`
                 # along automatically.
                 p.save(update_fields=profile_fields)
+                if p.state in ("active", "inactive"):
+                    queue_listmonk_member_sync(p, p.state)
         except IntegrityError:
             # Race with a concurrent register/update: pre-checks passed
             # but a unique constraint tripped on insert. Re-check to
