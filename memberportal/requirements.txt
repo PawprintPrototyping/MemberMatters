@@ -190,7 +190,7 @@ mailchimp-marketing @ git+https://github.com/mailchimp/mailchimp-marketing-pytho
     # via membermatters
 markuppy==1.18
     # via tablib
-msgpack==1.2.1
+msgpack==1.2.2
     # via
     #   autobahn
     #   channels-redis
