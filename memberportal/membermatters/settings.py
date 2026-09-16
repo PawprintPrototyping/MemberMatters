@@ -86,7 +86,9 @@ if IS_PRODUCTION:
 # Application definition
 INSTALLED_APPS = [
     "constance",
-    "constance.backends.database",
+    # Retains the historical migration label used by django-constance before
+    # version 4, so existing deployments keep a consistent migration graph.
+    "database",
     "django_prometheus",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -422,7 +424,6 @@ LANGUAGE_CODE = os.getenv("MM_LANGUAGE_CODE", "en-au")
 
 TIME_ZONE = os.getenv("MM_TIME_ZONE", "Australia/Brisbane")
 USE_I18N = True
-USE_L10N = True
 USE_TZ = True
 
 STATIC_URL = "/static/"

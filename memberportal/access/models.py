@@ -13,9 +13,8 @@ from services import sms
 from profile.models import Profile, log_event
 from memberbucks.models import MemberBucks
 from django.db import models
-from datetime import timedelta
+from datetime import UTC, timedelta
 from django.utils import timezone
-import pytz
 from django.conf import settings
 from django.contrib import auth
 import uuid
@@ -30,7 +29,7 @@ import access.metrics as metrics
 
 logger = logging.getLogger("access")
 User = auth.get_user_model()
-utc = pytz.UTC
+utc = UTC
 
 
 class AccessControlledDeviceAPIKey(AbstractAPIKey):

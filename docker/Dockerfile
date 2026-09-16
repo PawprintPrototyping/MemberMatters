@@ -15,7 +15,7 @@
 #
 # Enable BuildKit before building (docker >= 23 or DOCKER_BUILDKIT=1).
 
-ARG PYTHON_VERSION=3.12
+ARG PYTHON_VERSION=3.14
 ARG NODE_VERSION=24.20.0
 ARG UV_VERSION=0.11.8
 
@@ -30,7 +30,7 @@ FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv-bin
 # system-base: runtime OS + shared libs. Kept minimal because everything
 # installed here is copied into the final image.
 ##############################################################################
-FROM python:${PYTHON_VERSION}-bullseye AS system-base
+FROM python:${PYTHON_VERSION}-trixie AS system-base
 
 # Keep apt's package cache around so BuildKit cache mounts can persist it
 # across builds (the default docker-clean hook wipes it on every apt run).
@@ -92,7 +92,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 ##############################################################################
 # frontend-builder: install npm deps and produce the quasar SPA bundle.
 ##############################################################################
-FROM node:${NODE_VERSION}-bookworm AS frontend-builder
+FROM node:${NODE_VERSION}-trixie AS frontend-builder
 
 WORKDIR /build/frontend
 
@@ -113,7 +113,7 @@ RUN find dist -name '*.map' -type f -delete
 ##############################################################################
 FROM system-base AS runtime
 
-LABEL maintainer="Jaimyn Mayer (github@jaimyn.dev)"
+LABEL maintainer="Rechner Fox (rechner@pawprintprototyping.org)"
 LABEL description="Runtime image for the MemberMatters software."
 
 VOLUME /usr/src/data/

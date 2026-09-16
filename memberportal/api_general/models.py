@@ -1,12 +1,11 @@
 from django.db import models
-from datetime import timedelta
+from datetime import UTC, timedelta
 from django.utils import timezone
-import pytz
 from django.conf import settings
 from uuid import uuid4
 from django_prometheus.models import ExportModelOperationsMixin
 
-utc = pytz.UTC
+utc = UTC
 
 
 class Kiosk(ExportModelOperationsMixin("kiosk"), models.Model):

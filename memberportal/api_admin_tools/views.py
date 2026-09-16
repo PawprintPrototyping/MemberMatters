@@ -1,11 +1,12 @@
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 
 import stripe
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from constance import config
-from constance.backends.database.models import Constance as ConstanceSetting
+from constance.codecs import dumps, loads
+from constance.models import Constance as ConstanceSetting
 from django.db import transaction, IntegrityError
 from django.db.models import F, Sum, Value, CharField, Count, Max
 from django.db.models.functions import Concat
@@ -361,9 +362,7 @@ class MemberCancelMembership(StripeAPIView):
                 stripe_sub = stripe.Subscription.retrieve(subscription_id)
                 period_end_ts = getattr(stripe_sub, "current_period_end", None)
                 if period_end_ts:
-                    period_end_dt = datetime.fromtimestamp(
-                        period_end_ts, tz=timezone.utc
-                    )
+                    period_end_dt = datetime.fromtimestamp(period_end_ts, tz=UTC)
             except stripe.error.StripeError as e:
                 capture_exception(e)
 
@@ -1385,7 +1384,7 @@ class ManageSettings(APIView):
     def get_setting(self, setting):
         return {
             "key": setting.key,
-            "value": setting.value,
+            "value": loads(setting.value),
         }
 
     def get(self, request, setting_key=None):
@@ -1413,7 +1412,7 @@ class ManageSettings(APIView):
 
         try:
             setting = ConstanceSetting.objects.get(key=setting_key)
-            setting.value = body["value"]
+            setting.value = dumps(body["value"])
             setting.save()
 
             return Response(self.get_setting(setting))

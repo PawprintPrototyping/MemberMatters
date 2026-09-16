@@ -1,9 +1,9 @@
 from django.db import models
+from datetime import UTC
 from django.utils import timezone
-import pytz
 from django_prometheus.models import ExportModelOperationsMixin
 
-utc = pytz.UTC
+utc = UTC
 
 
 class Metric(ExportModelOperationsMixin("metric"), models.Model):

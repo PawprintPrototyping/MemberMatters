@@ -1,5 +1,6 @@
 import json
 
+from constance.codecs import dumps, loads
 from django.db import migrations, transaction
 
 LEGACY_EMAIL_KEYS = (
@@ -41,9 +42,16 @@ def _smtp_use_tls(value):
 
 
 def migrate_email_backend_configuration(apps, schema_editor):
-    Constance = apps.get_model("database", "Constance")
+    Constance = apps.get_model("constance", "Constance")
+    if (
+        schema_editor is not None
+        and Constance._meta.db_table
+        not in schema_editor.connection.introspection.table_names()
+    ):
+        return
+
     legacy_values = {
-        setting.key: setting.value
+        setting.key: loads(setting.value)
         for setting in Constance.objects.filter(key__in=LEGACY_EMAIL_KEYS)
     }
 
@@ -88,12 +96,12 @@ def migrate_email_backend_configuration(apps, schema_editor):
             [
                 Constance(
                     key="EMAIL_BACKEND_OPTIONS",
-                    value=json.dumps(profiles),
+                    value=dumps(json.dumps(profiles)),
                 ),
-                Constance(key="EMAIL_BACKEND", value=selected_backend),
+                Constance(key="EMAIL_BACKEND", value=dumps(selected_backend)),
                 Constance(
                     key="EMAIL_ENABLED",
-                    value=selected_backend != "disabled",
+                    value=dumps(selected_backend != "disabled"),
                 ),
             ]
         )

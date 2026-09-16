@@ -1,7 +1,8 @@
 import importlib
 import json
 
-from constance.backends.database.models import Constance
+from constance.codecs import dumps, loads
+from constance.models import Constance
 from django.apps import apps
 from django.test import TestCase
 
@@ -31,7 +32,7 @@ class EmailBackendConfigurationMigrationTests(TestCase):
 
     def seed(self, **values):
         Constance.objects.bulk_create(
-            [Constance(key=key, value=value) for key, value in values.items()]
+            [Constance(key=key, value=dumps(value)) for key, value in values.items()]
         )
 
     def run_migration(self):
@@ -39,7 +40,7 @@ class EmailBackendConfigurationMigrationTests(TestCase):
 
     def target_values(self):
         return {
-            setting.key: setting.value
+            setting.key: loads(setting.value)
             for setting in Constance.objects.filter(
                 key__in=email_migration.TARGET_EMAIL_KEYS
             )

@@ -6,10 +6,29 @@ updates:
   # understands SHA-pinned actions and will update both the SHA and the
   # trailing "# vX.Y.Z" version comment.
   - package-ecosystem: "github-actions"
+    open-pull-requests-limit: 10
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 10
+      day: "wednesday"
+      time: "18:00"
+      timezone: "America/Los_Angeles"
+    open-pull-requests-limit: 3
+    rebase-strategy: "disabled"
+    cooldown:
+      default-days: 7
+    groups:
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
 
   # Docker base image in docker/Dockerfile
   - package-ecosystem: "docker"
@@ -30,7 +49,30 @@ updates:
     directory: "/src-frontend"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 10
+      day: "wednesday"
+      time: "18:00"
+      timezone: "America/Los_Angeles"
+    open-pull-requests-limit: 3
+    rebase-strategy: "disabled"
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 5
+      semver-patch-days: 3
+    groups:
+      # Low risk - merge without much review
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      # Higher risk - review more carefully
+      major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
 
   # Capacitor mobile shell nested inside the frontend
   - package-ecosystem: "npm"
@@ -40,11 +82,34 @@ updates:
     open-pull-requests-limit: 10
 
   # Django backend
-  - package-ecosystem: "pip"
+  - package-ecosystem: "uv"
     directory: "/memberportal"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 10
+      day: "wednesday"
+      time: "18:00"
+      timezone: "America/Los_Angeles"
+    open-pull-requests-limit: 3
+    rebase-strategy: "disabled"
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 5
+      semver-patch-days: 3
+    groups:
+      # Low risk - merge without much review
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      # Higher risk - review more carefully
+      major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
 
   # Sphinx docs build
   - package-ecosystem: "pip"

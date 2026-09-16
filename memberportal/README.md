@@ -1,7 +1,7 @@
 # Getting started (Django backend)
 
 First step is to grab a copy of this repository. You will need to make sure you have python installed,
-3.10 or newer (3.12 is what the docker image uses). Dependencies are managed with
+Python 3.14.x (3.14 is what the Docker image uses). Dependencies are managed with
 [uv](https://docs.astral.sh/uv/); the resolved dependency graph lives in `uv.lock` and
 `pyproject.toml` is the source of truth for what is declared. `requirements.txt` is a
 `uv export` of the lock and is only kept as a fallback for environments without `uv`.
@@ -99,7 +99,7 @@ CFLAGS='-I/usr/local/opt/zlib/include -L/usr/local/opt/zlib/lib' pip3 install -r
 
 Please follow the instructions below to setup dev environment in Windows (tested in Windows 7 & 10).
 
-- Download & install Python 3.10+ from [here](https://www.python.org/downloads/)
+- Download & install Python 3.14.x from [here](https://www.python.org/downloads/)
 - CD into the cloned repository.
 - Assuming `pip` and `virtualenv` is already installed as part of the package, execute: `py -3 -m venv venv`
 - Activate the venv by running: `venv\Scripts\activate`
