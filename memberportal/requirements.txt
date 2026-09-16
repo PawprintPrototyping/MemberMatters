@@ -218,7 +218,7 @@ pillow==10.4.0
     # via membermatters
 postmarker==1.0
     # via membermatters
-prometheus-client==0.20.0
+prometheus-client==0.26.0
     # via
     #   django-prometheus
     #   membermatters
