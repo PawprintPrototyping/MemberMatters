@@ -183,12 +183,17 @@ jobs:
     steps:
       - name: Validate inputs
         shell: bash
+        env:
+          GLITCHTIP_ORG: ${{ inputs.glitchtip-org }}
+          GLITCHTIP_PROJECT: ${{ inputs.glitchtip-project }}
+          GLITCHTIP_URL: ${{ inputs.glitchtip-url }}
+          GLITCHTIP_AUTH_TOKEN: ${{ secrets.GLITCHTIP_AUTH_TOKEN }}
         run: |
           missing=""
-          [ -n "${{ inputs.glitchtip-org }}" ] || missing="$missing glitchtip-org"
-          [ -n "${{ inputs.glitchtip-project }}" ] || missing="$missing glitchtip-project"
-          [ -n "${{ inputs.glitchtip-url }}" ] || missing="$missing glitchtip-url"
-          [ -n "${{ secrets.GLITCHTIP_AUTH_TOKEN }}" ] || missing="$missing GLITCHTIP_AUTH_TOKEN"
+          [ -n "$GLITCHTIP_ORG" ] || missing="$missing glitchtip-org"
+          [ -n "$GLITCHTIP_PROJECT" ] || missing="$missing glitchtip-project"
+          [ -n "$GLITCHTIP_URL" ] || missing="$missing glitchtip-url"
+          [ -n "$GLITCHTIP_AUTH_TOKEN" ] || missing="$missing GLITCHTIP_AUTH_TOKEN"
           if [ -n "$missing" ]; then
             echo "upload-sourcemaps is true but these are unset:$missing" >&2
             exit 1
@@ -252,9 +257,12 @@ jobs:
         env:
           SENTRY_URL: ${{ inputs.glitchtip-url }}
           SENTRY_AUTH_TOKEN: ${{ secrets.GLITCHTIP_AUTH_TOKEN }}
+          SENTRY_RELEASE: ${{ steps.sha.outputs.short }}
+          GLITCHTIP_ORG: ${{ inputs.glitchtip-org }}
+          GLITCHTIP_PROJECT: ${{ inputs.glitchtip-project }}
         run: |
           glitchtip-cli sourcemaps inject ./dist
           glitchtip-cli sourcemaps upload ./dist \
-            --release "${{ steps.sha.outputs.short }}" \
-            --org "${{ inputs.glitchtip-org }}" \
-            --project "${{ inputs.glitchtip-project }}"
+            --release "$SENTRY_RELEASE" \
+            --org "$GLITCHTIP_ORG" \
+            --project "$GLITCHTIP_PROJECT"
