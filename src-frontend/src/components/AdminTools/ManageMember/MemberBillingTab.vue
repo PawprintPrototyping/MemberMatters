@@ -68,11 +68,11 @@
                     amount: $n(
                       subscription.membershipPlan.cost / 100,
                       'currency',
-                      siteLocaleCurrency
+                      siteLocaleCurrency,
                     ),
-                    interval: $tc(
+                    interval: $t(
                       `paymentPlans.interval.${subscription.membershipPlan.interval.toLowerCase()}`,
-                      subscription.membershipPlan.intervalAmount
+                      subscription.membershipPlan.intervalAmount,
                     ),
                   })
                 }}
@@ -120,7 +120,7 @@
               >
                 {{
                   $t(
-                    `adminTools.subscriptionStatusString.${subscription.status}`
+                    `adminTools.subscriptionStatusString.${subscription.status}`,
                   )
                 }}
               </q-item-label>
@@ -204,7 +204,7 @@
           color="primary"
           class="self-start"
           icon="mdi-open-in-new"
-          :label="$tc('billing.viewInvoice')"
+          :label="$t('billing.viewInvoice')"
           :href="subscription.invoiceUrl"
           target="_blank"
         />
@@ -387,7 +387,7 @@
                 $n(
                   billing?.memberbucks.balance || 0,
                   'currency',
-                  siteLocaleCurrency
+                  siteLocaleCurrency,
                 )
               }}
             </div>

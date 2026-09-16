@@ -47,7 +47,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
        nginx
 
 ##############################################################################
-# python-deps: resolve and install runtime python dependencies from uv.lock 
+# python-deps: resolve and install runtime python dependencies from uv.lock
 ##############################################################################
 FROM system-base AS python-deps
 

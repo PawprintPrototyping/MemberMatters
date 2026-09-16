@@ -20,7 +20,7 @@ export type MemberCountTotal = z.infer<typeof MemberCountTotalSchema>;
 export const SubscriptionCountTotalSchema = z.object({
   date: z.string(),
   data: z.array(
-    z.object({ state: SubscriptionStateSchema, total: z.number() })
+    z.object({ state: SubscriptionStateSchema, total: z.number() }),
   ),
 });
 
@@ -40,7 +40,7 @@ export type MemberbucksBalanceTotal = z.infer<
 export const MemberbucksTransactionsTotalSchema = z.object({
   date: z.string(),
   data: z.array(
-    z.object({ type: MemberbucksTransactionsTypeSchema, total: z.number() })
+    z.object({ type: MemberbucksTransactionsTypeSchema, total: z.number() }),
   ),
 });
 

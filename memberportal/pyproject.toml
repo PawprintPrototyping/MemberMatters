@@ -60,7 +60,6 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "black==25.1.0",
     "pre-commit==3.7.1",
 ]
 

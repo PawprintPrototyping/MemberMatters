@@ -5,9 +5,18 @@
   "author": "Jaimyn Mayer <github@jaimyn.dev>",
   "private": true,
   "dependencies": {
-    "@capacitor/android": "^2.4.7",
-    "@capacitor/cli": "^5.2.2",
-    "@capacitor/core": "^2.4.7",
-    "@capacitor/ios": "^2.4.7"
+    "@capacitor/android": "8.5.2",
+    "@capacitor/cli": "8.5.2",
+    "@capacitor/core": "8.5.2",
+    "@capacitor/ios": "8.5.2",
+    "@capacitor/preferences": "8.0.1",
+    "@capacitor/splash-screen": "8.0.2"
+  },
+  "overrides": {
+    "@capacitor/cli": {
+      "xcode": {
+        "uuid": "11.1.1"
+      }
+    }
   }
 }

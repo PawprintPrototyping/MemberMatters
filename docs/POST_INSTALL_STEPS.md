@@ -18,7 +18,7 @@ Logs are also available via the command `docker logs membermatters` from the Doc
 MemberMatters is designed to run behind some form of reverse proxy, or at the minimum, an SSL terminating CDN like Cloudflare (not recommended). You *should not ever* run MemberMatters in production without some form of HTTPS. The recommended way is with an nginx reverse proxy as explained below. Unfortunately, reverse proxy configurations are highly dependant on your specific environment, so only general guidance can be given. Please consult your favourite search engine if you have any trouble and only open a GitHub issue if you think you've found a bug or way to improve this documentation.
 
 ### Setting up an nginx reverse proxy on Ubuntu
-Note that the any updated DNS records for your server will need to have propagated prior to certificate being issued. 
+Note that the any updated DNS records for your server will need to have propagated prior to certificate being issued.
 From your Docker *host* command line do the following:
 1. You should first install nginx. On Ubuntu, you can install nginx with `sudo apt install nginx`.
 2. Configure your nginx instance to proxy traffic through to the MemberMatters docker container on port `8000`.
@@ -36,7 +36,7 @@ server {
 		proxy_set_header X-Forwarded-Port  $server_port;
         	proxy_set_header Upgrade           $http_upgrade;
         	proxy_set_header Connection        "upgrade";
-        
+
 		proxy_redirect off;
 		proxy_pass http://localhost:8000;
 	}
@@ -62,21 +62,21 @@ A summary of the settings is available below. Most settings have a more detailed
 > NOTE: Configure `EMAIL_ENABLED`, `EMAIL_BACKEND`, and `EMAIL_BACKEND_OPTIONS` before enabling registrations or workflows that send email. The Email Delivery section below includes Postmark and SMTP examples.
 
 ### Locale / Language Configuration
-MemberMatters has out of the box support for different locales (a combination of language and number/currency/date 
+MemberMatters has out of the box support for different locales (a combination of language and number/currency/date
 formatting). Currently, only the following locales are supported. If you want to add or improve support for a new locale
 then please file an issue, we'd love to help make it available in your language.
 
 MemberMatters will automatically change the language since it auto-detects the locale setting the user's browser is set to, and use that translation if available.
 However, as noted below, currencies will use a hardcoded value set by a configuration option.
 
-> NOTE: the `SITE_LOCALE_CURRENCY` option is what determines how the currency is displayed. This is "hardcoded" as a 
-> config option to prevent a currency/billing amount being displayed incorrectly. If your locale isn't directly 
+> NOTE: the `SITE_LOCALE_CURRENCY` option is what determines how the currency is displayed. This is "hardcoded" as a
+> config option to prevent a currency/billing amount being displayed incorrectly. If your locale isn't directly
 > supported, please open an issue or check below as your currency may already be supported under a different locale.o
 
-> NOTE: If you want to set the *server* timezone and language, export `MM_TIME_ZONE=<your area>/<your country>` and 
+> NOTE: If you want to set the *server* timezone and language, export `MM_TIME_ZONE=<your area>/<your country>` and
 > `MM_LANGAUGE_CODE=<your-language-code>` before launching the server component.  If you do not set these variables,
 > the server logs will default to `Australia/Brisbane` as the timezone and `en-au` as the default language.
- 
+
 #### Locale Options
 * `en-AU` - full translation available, currency format `$12.50`.
 * `en-NZ` - no translation available (fall back to `en-AU`), currency format `$12.50`.
@@ -95,7 +95,7 @@ However, as noted below, currencies will use a hardcoded value set by a configur
   * "REGISTRATION_DISABLED_MESSAGE" - message shown to members on the registration page (and as a popup if they click "Register Here" on the login page) when `ENABLE_REGISTRATION` is `False`. Use this for an "at capacity" / "scheduled outage" / "membership is invite-only" message without needing a deploy.
   * "INDUCTION_ENROL_LINK" - URL to enrol in the Canvas LMS induction course.
   * "INDUCTION_COURSE_ID" - ID of the Canvas LMS induction course (usually found in the course URL on the settings page).
-  * "MAX_INDUCTION_DAYS" -  Maximum number of days since they were inducted before they require another induction. Set 
+  * "MAX_INDUCTION_DAYS" -  Maximum number of days since they were inducted before they require another induction. Set
     to `0` to disable induction requirement.
   * "MIN_INDUCTION_SCORE" - The minimum score considered a "pass" for the induction course.
   * "REQUIRE_ACCESS_CARD" - Require the member to have an RFID access card assigned before completing signup. Set to
@@ -145,8 +145,8 @@ However, as noted below, currencies will use a hardcoded value set by a configur
 * `SMS_ENABLE` - Enables sending of SMS messages on some events. See below for a current list of events.
 * `TWILIO_ACCOUNT_SID` - The **account SID** (_not api key SID_) to use for the twilio integration.
 * `TWILIO_AUTH_TOKEN` - The **auth token** (_not an api token_) to use for the twilio integration.
-* `SMS_DEFAULT_COUNTRY_CODE` - If the user's number does not start with a `+`, this default country code will be 
-  prepended to it. This allows support for international numbers, while allowing local users to skip specifying one. 
+* `SMS_DEFAULT_COUNTRY_CODE` - If the user's number does not start with a `+`, this default country code will be
+  prepended to it. This allows support for international numbers, while allowing local users to skip specifying one.
 * `SMS_SENDER_ID` - The sender ID (either a phone number or alpha numeric sender ID). Some countries
   support an "alpha numeric" send ID such as a business name. See [this page](https://support.twilio.com/hc/en-us/articles/223133967-Change-the-From-number-or-Sender-ID-for-Sending-SMS-Messages) for more info.
 * `SMS_MESSAGES` - The SMS templates / messages to use.
@@ -188,7 +188,7 @@ You cannot currently enable specific events, you either get "all or nothing".
   * "GROUP_NAME" - [Deprecated]
   * "ADMIN_NAME" - [Deprecated]
   * "WEBCAM_PAGE_URLS" - a JSON array of URLs to be used as the source for each webcam on the webcams page.
-    * You should use an array of arrays like to specify the webcam snapshot title & locations like so: 
+    * You should use an array of arrays like to specify the webcam snapshot title & locations like so:
   ```
     [
     ["Main Room", "https://example.com/mainroom.jpg"],
@@ -286,8 +286,8 @@ With Query parameter:
 POST /api/access/doors/DOOR_ID/bump/?secret=DOOR_BUMP_API_KEY
 ```
 
-Where `DOOR_ID` is the ID of the door you wish to bump (can be found in the URL of the door's admin page). The request 
-must be authenticated with an `Authorization` header set to the value of `DOOR_BUMP_API_KEY` or as a query parameter 
+Where `DOOR_ID` is the ID of the door you wish to bump (can be found in the URL of the door's admin page). The request
+must be authenticated with an `Authorization` header set to the value of `DOOR_BUMP_API_KEY` or as a query parameter
 as above (NOT recommended for security).
 
 ### Discord Integration

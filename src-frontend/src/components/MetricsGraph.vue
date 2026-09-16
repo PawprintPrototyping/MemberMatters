@@ -12,6 +12,8 @@
 <script>
 import formatMixin from 'src/mixins/formatMixin';
 
+const initiallyHiddenStates = new Set(['inactive', 'accountonly', 'noob']);
+
 export default {
   name: 'MetricsGraph',
   mixins: [formatMixin],
@@ -24,17 +26,6 @@ export default {
       type: String,
       default: '',
     },
-  },
-  data() {
-    return {};
-  },
-  mounted() {
-    setTimeout(() => {
-      const chart = ApexCharts.getChartByID('metrics-graph-' + this.id);
-      chart.hideSeries('Inactive Member');
-      chart.hideSeries('Account Only');
-      chart.hideSeries('New Member');
-    }, 0); // triggers on the next dom update
   },
   computed: {
     options() {
@@ -97,6 +88,7 @@ export default {
         return {
           name: this.$t('stats.labels.' + state),
           data: states[state],
+          hidden: initiallyHiddenStates.has(state),
         };
       });
     },

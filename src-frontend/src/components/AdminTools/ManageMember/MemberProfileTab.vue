@@ -37,8 +37,8 @@
           selectedMember.stateLocked
             ? 'positive'
             : isSettledNonMember
-            ? 'warning'
-            : 'grey-7'
+              ? 'warning'
+              : 'grey-7'
         "
         :label="
           selectedMember.stateLocked
@@ -211,7 +211,7 @@
             :label="
               requiredLabel(
                 $t('form.screenName'),
-                features?.signup?.requireScreenName !== false
+                features?.signup?.requireScreenName !== false,
               )
             "
             lazy-rules
@@ -283,7 +283,7 @@
                   inactive: selectedMember.state === 'inactive',
                   active: selectedMember.state === 'active',
                   cancelling: ['accountonly', 'noob'].includes(
-                    selectedMember.state
+                    selectedMember.state,
                   ),
                 }"
               >
@@ -337,9 +337,9 @@
               <q-item-label lines="1">
                 {{
                   $n(
-                    selectedMember.memberBucks.balance || 0,
+                    selectedMember.memberBucks?.balance ?? 0,
                     'currency',
-                    siteLocaleCurrency
+                    siteLocaleCurrency,
                   )
                 }}
               </q-item-label>
@@ -352,7 +352,7 @@
             <q-item-section>
               <q-item-label lines="1">
                 {{
-                  selectedMember.memberBucks.lastPurchase
+                  selectedMember.memberBucks?.lastPurchase
                     ? formatDate(selectedMember.memberBucks.lastPurchase)
                     : $t('error.noValue')
                 }}
@@ -707,7 +707,7 @@ export default defineComponent({
       return (
         parsePhoneNumberFromString(
           value,
-          this.phoneRegion as CountryCode
+          this.phoneRegion as CountryCode,
         )?.format('E.164') ?? value
       );
     },
@@ -948,7 +948,13 @@ export default defineComponent({
     ...mapGetters('config', ['siteLocaleCurrency', 'features']),
     // Match backend: parse national-format with PROFILE_DEFAULT_PHONE_REGION.
     phoneRegion(): string {
-      return (this as any).features?.signup?.defaultPhoneRegion || 'AU';
+      return (
+        (
+          this as {
+            features?: { signup?: { defaultPhoneRegion?: string } };
+          }
+        ).features?.signup?.defaultPhoneRegion || 'AU'
+      );
     },
     selectedMember(): MemberProfile {
       return this.member as MemberProfile;

@@ -18,7 +18,7 @@ let initialised = false;
  * @param {object} [options.tags] Extra tags to attach to every event.
  */
 export function initSentry(dsn, { environment, tags = {} } = {}) {
-  if (initialised || !dsn || process.env.NODE_ENV === 'development') {
+  if (initialised || !dsn || import.meta.env.DEV) {
     return;
   }
   initialised = true;
@@ -28,7 +28,7 @@ export function initSentry(dsn, { environment, tags = {} } = {}) {
     dsn,
     environment: environment || 'UNKNOWN',
     // Prefer the CI-injected release (commit SHA) so it matches the uploaded source maps.
-    release: process.env.sentryRelease || version,
+    release: import.meta.env.sentryRelease || version,
     integrations: vueRouter
       ? [Sentry.browserTracingIntegration({ router: vueRouter })]
       : [],

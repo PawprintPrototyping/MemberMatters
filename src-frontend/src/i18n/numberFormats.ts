@@ -41,4 +41,4 @@ export default {
       currencyDisplay: 'symbol',
     },
   },
-};
+} satisfies Record<string, Record<string, Intl.NumberFormatOptions>>;

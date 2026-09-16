@@ -1,3 +1,7 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
-npm run pre-commit
+if command -v uv >/dev/null 2>&1; then
+  exec uv run --project memberportal pre-commit run --config .pre-commit-config.yaml --hook-stage pre-commit
+fi
+
+exec pre-commit run --config .pre-commit-config.yaml --hook-stage pre-commit

@@ -142,7 +142,7 @@ import { copyToClipboard } from 'quasar';
 import icons from '@icons';
 import formatMixin from '@mixins/formatMixin';
 import { exportFile } from 'quasar';
-import { stringify } from 'csv-stringify';
+import { stringify } from 'csv-stringify/browser/esm/sync';
 import { mapGetters } from 'vuex';
 import { MemberProfile } from 'types/member';
 import { defineComponent } from 'vue';
@@ -185,7 +185,7 @@ export default defineComponent({
     displayMemberList() {
       if (this.memberState === 'all') return this.members;
       return this.members.filter(
-        (member: MemberProfile) => member.state === this.memberState
+        (member: MemberProfile) => member.state === this.memberState,
       );
     },
     memberEmails() {
@@ -284,40 +284,34 @@ export default defineComponent({
         });
     },
     exportCsv() {
-      console.log(this.displayMemberList);
-      stringify(
-        this.displayMemberList,
-        {
-          columns: ['name.full', 'email', 'state'],
-        },
-        (err, output) => {
-          const status = exportFile('member-export.csv', output, 'text/csv');
+      const output = stringify(this.displayMemberList, {
+        columns: ['name.full', 'email', 'state'],
+      });
+      const status = exportFile('member-export.csv', output, 'text/csv');
 
-          if (status !== true) {
-            this.$q.notify({
-              message: this.$t('error.downloadFailed'),
-              color: 'negative',
-              icon: 'warning',
-            });
-          }
-        }
-      );
+      if (status !== true) {
+        this.$q.notify({
+          message: this.$t('error.downloadFailed'),
+          color: 'negative',
+          icon: 'warning',
+        });
+      }
     },
     copyEmailsToClipboard() {
       copyToClipboard(this.memberEmails)
         .then(() => {
           this.$q.dialog({
             dark: true,
-            title: this.$tc(
+            title: this.$t(
               'adminTools.copyEmailListSuccess',
-              this.displayMemberList.length
+              this.displayMemberList.length,
             ),
-            message: this.$tc(
+            message: this.$t(
               'adminTools.copyEmailListSuccessDescription',
               this.displayMemberList.length -
                 this.displayMemberList.filter(
-                  (member: MemberProfile) => !member.excludeFromEmailExport
-                ).length
+                  (member: MemberProfile) => !member.excludeFromEmailExport,
+                ).length,
             ),
           });
         })

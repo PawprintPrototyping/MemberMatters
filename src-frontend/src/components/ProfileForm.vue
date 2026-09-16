@@ -68,7 +68,7 @@
         :label="
           requiredLabel(
             $t('form.screenName'),
-            features?.signup?.requireScreenName !== false
+            features?.signup?.requireScreenName !== false,
           )
         "
         lazy-rules
@@ -174,9 +174,10 @@ export default {
 
       // Normalise to E.164 before posting; the backend re-validates.
       const phone = this.form.phone
-        ? parsePhoneNumberFromString(this.form.phone, this.phoneRegion)?.format(
-            'E.164'
-          ) ?? this.form.phone
+        ? (parsePhoneNumberFromString(
+            this.form.phone,
+            this.phoneRegion,
+          )?.format('E.164') ?? this.form.phone)
         : this.form.phone;
 
       this.$axios

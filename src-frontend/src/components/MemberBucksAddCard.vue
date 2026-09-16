@@ -99,7 +99,7 @@ export default {
                     name: this.profile.fullName,
                   },
                 },
-              }
+              },
             );
 
             if (error) {

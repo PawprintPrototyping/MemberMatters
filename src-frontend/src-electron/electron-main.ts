@@ -1,19 +1,77 @@
-import { app, BrowserWindow, nativeTheme, session } from 'electron';
-import path from 'path';
-import os from 'os';
+import { app, BrowserWindow, ipcMain, nativeTheme, session } from 'electron';
+import { createHash } from 'node:crypto';
+import { unlinkSync } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 // needed in case process is undefined under Linux
 const platform = process.platform || os.platform();
 
-try {
-  if (platform === 'win32' && nativeTheme.shouldUseDarkColors === true) {
-    require('fs').unlinkSync(
-      path.join(app.getPath('userData'), 'DevTools Extensions')
+function getLegacyKioskMac(): string | undefined {
+  const interfaces = os.networkInterfaces();
+  const interfacePrefix =
+    os.platform() === 'darwin'
+      ? 'en'
+      : os.platform() === 'win32'
+        ? null
+        : 'eth';
+
+  if (interfacePrefix) {
+    for (let index = -1; index < 8; index += 1) {
+      const interfaceName = `${interfacePrefix}${index >= 0 ? index : ''}`;
+      const address = interfaces[interfaceName]?.find(
+        (item) => item.family === 'IPv4' && Boolean(item.mac),
+      );
+
+      if (address?.mac) {
+        return address.mac;
+      }
+    }
+  }
+
+  for (const addresses of Object.values(interfaces)) {
+    const address = addresses?.find(
+      (item) =>
+        item.family === 'IPv4' &&
+        !item.address.startsWith('127.') &&
+        Boolean(item.mac),
+    );
+
+    if (address?.mac) {
+      return address.mac;
+    }
+  }
+
+  return undefined;
+}
+
+function getKioskIdentity(): string {
+  const macAddress = getLegacyKioskMac();
+
+  if (!macAddress) {
+    throw new Error(
+      'Unable to derive a kiosk identity from a network interface',
     );
   }
-} catch (_) {}
+
+  return createHash('sha256').update(macAddress).digest('hex');
+}
+
+try {
+  if (platform === 'win32' && nativeTheme.shouldUseDarkColors === true) {
+    unlinkSync(path.join(app.getPath('userData'), 'DevTools Extensions'));
+  }
+} catch {}
 
 let mainWindow: BrowserWindow | undefined;
+
+ipcMain.handle('kiosk:get-identity', (event) => {
+  if (event.sender.id !== mainWindow?.webContents.id) {
+    throw new Error('Kiosk identity is only available to the main window');
+  }
+
+  return getKioskIdentity();
+});
 
 function createWindow() {
   /**

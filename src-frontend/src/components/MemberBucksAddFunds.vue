@@ -150,7 +150,7 @@ export default {
       return this.$n(
         this?.profile?.financial?.memberBucks?.balance || 0,
         'currency',
-        this.siteLocaleCurrency
+        this.siteLocaleCurrency,
       );
     },
   },

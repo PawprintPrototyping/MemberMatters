@@ -85,9 +85,22 @@ See the [screenshots](screenshots) folder for more screenshots.
 
 ### Pre-Commit Hooks
 
-We use husky and lint-staged to manage pre commit hooks. The first thing you should do is run `npm install` in this
-directory. This installs and configures the pre commit hooks automatically. After doing this, you should see them run
-when you try to commit a file (for example, with `git commit -m "update thing"`).
+Husky installs the commit-hook launcher when you run `npm install` at the
+repository root. The launcher runs the validation policy in
+`.pre-commit-config.yaml`, which formats staged frontend files and validates
+Python and frontend changes.
+
+Set up the backend tools and frontend dependencies before committing:
+
+```bash
+cd memberportal && uv sync
+cd ..
+npm ci --prefix src-frontend
+npm install
+```
+
+For the pip fallback, install `pre-commit` in your virtual environment. Black
+is provisioned at the pinned version by the hook itself.
 
 ### Development tip (dev server proxy)
 

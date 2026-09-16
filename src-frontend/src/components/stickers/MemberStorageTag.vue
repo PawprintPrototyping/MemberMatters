@@ -50,7 +50,7 @@ export default {
         { errorCorrectionLevel: 'H' },
         async (err, url) => {
           this.qrcode = url;
-        }
+        },
       );
     },
   },

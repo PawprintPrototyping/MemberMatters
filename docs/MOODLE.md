@@ -45,7 +45,7 @@ Click "Save and Continue Editing" to retrieve the credentials:
 
 ![](moodle-oauth2-secrets.png)
 
-Leave this tab open, and browse to `https://<MY-MOODLE-SITE>/admin/tool/oauth2/issuers.php` in a new tab. 
+Leave this tab open, and browse to `https://<MY-MOODLE-SITE>/admin/tool/oauth2/issuers.php` in a new tab.
 
 ### Moodle OAuth Setup
 

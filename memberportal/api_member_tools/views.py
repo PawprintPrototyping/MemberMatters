@@ -85,7 +85,7 @@ class Lastseen(APIView):
     queryset = Profile.objects.filter(state="active").order_by("-last_seen")
 
     def get(self, request):
-        last_seen = list()
+        last_seen = []
 
         for member in self.queryset.all():
             if not member.state == "active":

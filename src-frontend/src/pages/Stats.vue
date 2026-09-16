@@ -66,7 +66,6 @@
 import { mapActions, mapGetters } from 'vuex';
 import icons from '@icons';
 import MetricsGraph from 'components/MetricsGraph.vue';
-import { MetricsApiSchema } from 'types/api/metrics';
 
 export default {
   name: 'StatsPage',

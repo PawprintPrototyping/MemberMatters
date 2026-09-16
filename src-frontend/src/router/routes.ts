@@ -65,7 +65,7 @@ const menuRoutes: RouteRecordRaw[] = mainMenu.map(
         bgGradient: menuItem.bgGradient,
       },
     };
-  }
+  },
 );
 
 const routes: RouteRecordRaw[] = [

@@ -377,12 +377,12 @@ export default {
     // find the device index from the devices list
     if (this.deviceType === 'doors') {
       this.deviceIndex = this.doors.findIndex(
-        (item) => String(item.id) === this.deviceId
+        (item) => String(item.id) === this.deviceId,
       );
     } else if (this.deviceType === 'interlocks') {
       this.disabled.sync = true;
       this.deviceIndex = this.interlocks.findIndex(
-        (item) => String(item.id) === this.deviceId
+        (item) => String(item.id) === this.deviceId,
       );
     } else if (this.deviceType === 'memberbucks-devices') {
       this.disabled = {
@@ -392,7 +392,7 @@ export default {
         sync: true,
       };
       this.deviceIndex = this.memberbucksDevices.findIndex(
-        (item) => String(item.id) === this.deviceId
+        (item) => String(item.id) === this.deviceId,
       );
     } else {
       console.error('Invalid device type: ', this.deviceType);
@@ -533,7 +533,7 @@ export default {
             this.$axios
               .put(
                 `/api/admin/${this.deviceType}/${this.device.id}/`,
-                this.device
+                this.device,
               )
               .then(() => {
                 this.saved.error = false;

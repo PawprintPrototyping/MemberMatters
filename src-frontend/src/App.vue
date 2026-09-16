@@ -15,7 +15,6 @@ import { mapActions, mapGetters, mapMutations } from 'vuex';
 import { defineComponent } from 'vue';
 import { setCssVar, Platform } from 'quasar';
 import KioskSettings from '@components/Settings.vue';
-import store from './store/index';
 import LoginCard from '@components/LoginCard.vue';
 import { api } from 'boot/axios';
 
@@ -29,7 +28,6 @@ export default defineComponent({
     };
   },
   components: { KioskSettings, LoginCard },
-  store,
   data() {
     return {
       loginModal: false,
@@ -98,14 +96,17 @@ export default defineComponent({
           }
         }
         return Promise.reject(error);
-      }
+      },
     );
   },
   async mounted() {
     if (Platform.is.electron) {
-      this.getKioskId().then(() => {
-        this.pushKioskId();
-      });
+      try {
+        await this.getKioskId();
+        await this.pushKioskId();
+      } catch (error) {
+        console.error('Unable to initialize kiosk identity', error);
+      }
     }
 
     this.setCardId(null);

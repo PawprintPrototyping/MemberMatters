@@ -34,9 +34,9 @@ export default defineComponent({
       members: [],
     };
   },
-  beforeRouteLeave(to, from, next) {
+  beforeRouteLeave() {
     this.getMembers();
-    next();
+    return true;
   },
   computed: {
     icons() {
@@ -44,7 +44,7 @@ export default defineComponent({
     },
     currentMember() {
       const member = this.members.find(
-        (member: MemberProfile) => String(member.id) === String(this.memberId)
+        (member: MemberProfile) => String(member.id) === String(this.memberId),
       );
 
       return member || false;

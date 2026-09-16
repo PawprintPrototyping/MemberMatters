@@ -28,11 +28,7 @@ export default {
     },
     setLoggedIn(state, payload) {
       // If we're on electron, logged in, and not in dev then enable auto logout after 20s
-      if (
-        Platform.is.electron &&
-        payload === true &&
-        process.env.NODE_ENV !== 'Development'
-      ) {
+      if (Platform.is.electron && payload === true && !import.meta.env.DEV) {
         window.IDLETIMEOUT = idleTimeout(
           () => {
             this.$router.push({ name: 'logout' });
@@ -41,7 +37,7 @@ export default {
             element: document,
             timeout: 1000 * 20,
             loop: false,
-          }
+          },
         );
       }
       state.loggedIn = payload;
@@ -73,7 +69,7 @@ export default {
       return new Promise((resolve) => {
         api.get('/api/profile/').then((response) => {
           response.data.firstJoined = dayjs(response.data.firstJoined).format(
-            'D MMMM YYYY'
+            'D MMMM YYYY',
           );
           commit('setProfile', response.data);
           commit('setLoggedIn', true);

@@ -18,7 +18,7 @@
           :disable="donatingFunds"
           v-model="amount"
           type="number"
-          :label="$tc('memberbucks.totalAmount')"
+          :label="$t('memberbucks.totalAmount')"
           color="accent"
         />
 
@@ -26,7 +26,7 @@
           outlined
           :disable="donatingFunds"
           v-model="description"
-          :label="$tc('form.description')"
+          :label="$t('form.description')"
           color="accent"
         />
 
@@ -144,7 +144,7 @@ export default defineComponent({
       return this.$n(
         this?.profile?.financial?.memberBucks?.balance || 0,
         'currency',
-        this.siteLocaleCurrency
+        this.siteLocaleCurrency,
       );
     },
   },
