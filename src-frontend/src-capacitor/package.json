@@ -5,7 +5,7 @@
   "author": "Jaimyn Mayer <github@jaimyn.dev>",
   "private": true,
   "dependencies": {
-    "@capacitor/android": "^2.4.7",
+    "@capacitor/android": "^8.5.2",
     "@capacitor/cli": "^5.2.2",
     "@capacitor/core": "^2.4.7",
     "@capacitor/ios": "^2.4.7"
