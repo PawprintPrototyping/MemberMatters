@@ -47,7 +47,7 @@ billiard==4.2.4
     # via celery
 cbor2==5.9.0 ; python_full_version >= '3.11'
     # via autobahn
-celery==5.4.0
+celery==5.6.3
     # via
     #   django-celery-beat
     #   django-celery-results
