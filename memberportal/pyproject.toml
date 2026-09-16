@@ -21,10 +21,10 @@ requires-python = ">=3.14,<3.15"
 dependencies = [
     "django>=6,<6.1",
     "requests>=2.32.3,<2.35.0",
-    "stripe~=9.8.0",
+    "stripe==15.6.1",
     "humanize>=4.9,<4.17",
     "django-constance>=4,<5",
-    "django-picklefield~=3.2",
+    "django-picklefield~=3.4",
     "django-cors-headers>=4.7,<5",
     "djangorestframework>=3.16,<4",
     "djangorestframework-simplejwt>=5.5,<6",
@@ -34,16 +34,17 @@ dependencies = [
     "mailchimp-marketing",
     "channels>=4,<5",
     "daphne>=4,<5",
+    "cbor2==6.1.4",
     "zeroconf>=0.132.2,<0.152.0",
     "postmarker~=1.0",
-    "channels-redis>=4,<5",
+    "channels-redis>=4.3,<5",
     "ics~=0.7.2",
     "python_http_client~=3.3.7",
-    "pwned-passwords-django~=2.1",
+    "pwned-passwords-django~=5.2.0",
     "celery>=5.4,<5.7",
     "django-celery-results>=2.6,<3",
     "django-celery-beat>=2.7,<3",
-    "redis~=4.3.1",
+    "redis~=8.1.0",
     "twilio>=9.1,<9.12",
     "phonenumberslite~=9.0.30",
     "django-prometheus==2.5.0",
@@ -60,7 +61,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "pre-commit==3.7.1",
+    "pre-commit==4.6.2",
 ]
 
 # The mailchimp-marketing package is only published to a git repo. Pin the

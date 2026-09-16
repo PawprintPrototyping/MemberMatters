@@ -10,7 +10,7 @@ permissions: {}
 
 jobs:
   build:
-    uses: ./.github/workflows/_build-docker.yml
+    uses: $/.github/workflows/_build-docker.yml
     permissions:
       contents: read
       packages: write # pushes the built image to GHCR

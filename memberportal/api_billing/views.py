@@ -47,7 +47,7 @@ def ensure_stripe_customer(user):
         if profile.stripe_customer_id:
             try:
                 customer = stripe.Customer.retrieve(profile.stripe_customer_id)
-                if not customer.get("deleted"):
+                if not getattr(customer, "deleted", False):
                     user.profile.stripe_customer_id = profile.stripe_customer_id
                     return True, None
             except stripe.error.InvalidRequestError:

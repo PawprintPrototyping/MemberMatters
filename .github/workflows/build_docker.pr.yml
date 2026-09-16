@@ -88,7 +88,7 @@ jobs:
 
   build:
     needs: prepare
-    uses: ./.github/workflows/_build-docker.yml
+    uses: $/.github/workflows/_build-docker.yml
     # Read-only: upload_docker.pr.yml does the push, via workflow_run.
     permissions:
       contents: read
