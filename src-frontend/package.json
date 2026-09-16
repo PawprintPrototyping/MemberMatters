@@ -65,7 +65,7 @@
     "@intlify/vue-i18n-loader": "^5.0.0",
     "@quasar/app-vite": "^1.4.3",
     "@quasar/icongenie": "^6.1.6",
-    "@types/node": "^17.0.26",
+    "@types/node": "^26.5.1",
     "@typescript-eslint/eslint-plugin": "^5.20.0",
     "@typescript-eslint/parser": "^5.20.0",
     "@vue/cli-service": "^5.0.4",
