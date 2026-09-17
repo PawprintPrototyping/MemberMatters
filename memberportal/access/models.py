@@ -313,9 +313,9 @@ class Doors(ExportModelOperationsMixin("door"), AccessControlledDevice):
                 # notify messaging apps of bump
                 profile = request.user.profile
                 if self.post_to_slack:
-                    post_door_bump_to_slack(profile.get_full_name(), self.name)
+                    post_door_bump_to_slack(profile.get_display_name(), self.name)
                 if self.post_to_discord:
-                    post_door_bump_to_discord(profile.get_full_name(), self.name)
+                    post_door_bump_to_discord(profile.get_display_name(), self.name)
                 self.log_access(request.user.id)
                 request.user.log_event(
                     f"Bumped the {self.name} {self._meta.verbose_name}.",
@@ -355,9 +355,11 @@ class Doors(ExportModelOperationsMixin("door"), AccessControlledDevice):
 
             # TODO replace with generic post_to_messengers
             if self.post_to_discord:
-                post_door_swipe_to_discord(profile.get_full_name(), self.name, success)
+                post_door_swipe_to_discord(
+                    profile.get_display_name(), self.name, success
+                )
             if self.post_to_slack:
-                post_door_swipe_to_slack(profile.get_full_name(), self.name, success)
+                post_door_swipe_to_slack(profile.get_display_name(), self.name, success)
 
         elif success == "locked_out":
             metrics.device_access_failures_total.labels(
@@ -367,11 +369,11 @@ class Doors(ExportModelOperationsMixin("door"), AccessControlledDevice):
             # TODO replace with generic post_to_messengers
             if self.post_to_discord:
                 post_door_swipe_to_discord(
-                    profile.get_full_name(), self.name, "locked_out"
+                    profile.get_display_name(), self.name, "locked_out"
                 )
             if self.post_to_slack:
                 post_door_swipe_to_slack(
-                    profile.get_full_name(), self.name, "locked_out"
+                    profile.get_display_name(), self.name, "locked_out"
                 )
 
             sms_message = sms.SMS()
@@ -385,10 +387,12 @@ class Doors(ExportModelOperationsMixin("door"), AccessControlledDevice):
             # TODO replace with generic post_to_messengers
             if self.post_to_discord:
                 post_door_swipe_to_discord(
-                    profile.get_full_name(), self.name, "rejected"
+                    profile.get_display_name(), self.name, "rejected"
                 )
             if self.post_to_slack:
-                post_door_swipe_to_slack(profile.get_full_name(), self.name, "rejected")
+                post_door_swipe_to_slack(
+                    profile.get_display_name(), self.name, "rejected"
+                )
 
             sms_message = sms.SMS()
             sms_message.send_inactive_swipe_alert(profile.phone)
@@ -437,7 +441,7 @@ class Interlock(ExportModelOperationsMixin("interlock"), AccessControlledDevice)
 
         if self.post_to_discord:
             post_interlock_swipe_to_discord(
-                profile.get_full_name(), self.name, type=log_type
+                profile.get_display_name(), self.name, type=log_type
             )
 
         if log_type == "activated":
@@ -484,7 +488,7 @@ class DoorLog(ExportModelOperationsMixin("door-log"), models.Model):
     success = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.user.get_full_name()} ({self.user.profile.screen_name}) swiped at {self.door.name} {'successfully' if self.success else 'unsuccessfully'} on {self.date.date()}"
+        return f"{self.user.profile.get_display_name(include_screen_name=True)} swiped at {self.door.name} {'successfully' if self.success else 'unsuccessfully'} on {self.date.date()}"
 
 
 class InterlockLog(ExportModelOperationsMixin("interlock-log"), models.Model):
@@ -510,7 +514,7 @@ class InterlockLog(ExportModelOperationsMixin("interlock-log"), models.Model):
     total_cost = models.FloatField(default=None, blank=True, null=True)
 
     def __str__(self):
-        return f"{self.user_started.get_full_name()} ({self.user_started.profile.screen_name}) swiped at {self.interlock.name} {'successfully' if self.success else 'unsuccessfully'} for {round(self.total_time.total_seconds() / 60)} mins at {self.date_started.date()}"
+        return f"{self.user_started.profile.get_display_name(include_screen_name=True)} swiped at {self.interlock.name} {'successfully' if self.success else 'unsuccessfully'} for {round(self.total_time.total_seconds() / 60)} mins at {self.date_started.date()}"
 
     def calculate_cost(self):
         total_cost = self.interlock.cost_per_session

@@ -409,6 +409,10 @@ CONSTANCE_CONFIG = {
         False,
         "Require members to set a public screen name during signup. Off means the screen name field is optional.",
     ),
+    "PREFER_SCREEN_NAME_OVER_FULL_NAME": (
+        False,
+        "Prefer a member's public screen name over their full name in member-facing displays when it is set.",
+    ),
     "MEMBER_CAN_EDIT_BASIC_DETAILS": (
         True,
         "Allow members to edit their own name, phone, address and similar basic profile fields. Turn off to lock profile editing to admins only.",
@@ -632,6 +636,7 @@ CONSTANCE_CONFIG_FIELDSETS = OrderedDict(
                 "MEMBER_CAN_EDIT_BASIC_DETAILS",
                 "MEMBER_CAN_EDIT_EMAIL",
                 "PROFILE_DEFAULT_PHONE_REGION",
+                "PREFER_SCREEN_NAME_OVER_FULL_NAME",
             ),
         ),
         (

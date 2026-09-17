@@ -1014,6 +1014,17 @@ class Profile(ExportModelOperationsMixin("profile"), models.Model):
     def get_full_name(self):
         return self.first_name + " " + self.last_name
 
+    def get_display_name(self, include_screen_name=False):
+        """Return the configured public name for member-facing displays."""
+        screen_name = (self.screen_name or "").strip()
+        if config.PREFER_SCREEN_NAME_OVER_FULL_NAME and screen_name:
+            return screen_name
+
+        display_name = self.get_full_name()
+        if include_screen_name and screen_name:
+            return f"{display_name} ({screen_name})"
+        return display_name
+
     def get_short_name(self):
         return self.first_name
 

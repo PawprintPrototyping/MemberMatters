@@ -29,7 +29,7 @@ class Statistics(APIView):
         on_site["count"] = members.count()
 
         for member in members:
-            on_site["members"].append(member.user.profile.get_full_name())
+            on_site["members"].append(member.user.profile.get_display_name())
 
         statistics["on_site"] = on_site
 

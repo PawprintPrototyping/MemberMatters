@@ -84,7 +84,7 @@ def sync_listmonk_member(self, outbox_id):
                 user_id=profile.user_id,
                 profile_id=profile.pk,
                 email=profile.user.email,
-                name=profile.get_full_name(),
+                name=profile.get_display_name(),
                 desired_state=outbox.desired_state,
             )
             outbox.remote_subscriber_id = remote_subscriber_id
