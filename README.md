@@ -1,4 +1,15 @@
-***This is the [Pawprint Prototyping](https://pawprintprototyping.org) fork, based on the [Makers of Swedens](http://makersofsweden.se) fork of [MemberMatters](https://github.com/membermatters/MemberMatters), created to handle community updates and maintenance***
+[![Coverage Status](https://coveralls.io/repos/github/PawprintPrototyping/MemberMatters/badge.svg?branch=rechner/induction-requirements-rework-clean)](https://coveralls.io/github/PawprintPrototyping/MemberMatters?branch=rechner/induction-requirements-rework-clean)
+![Dependabot Active](https://img.shields.io/badge/dependabot-active-brightgreen?style=flat-square&logo=dependabot)
+[![Build Docker Image (Dev Branch)](https://github.com/membermatters/MemberMatters/actions/workflows/build_docker.dev.yml/badge.svg)](https://github.com/membermatters/MemberMatters/actions/workflows/build_docker.dev.yml)
+
+***This is the [Pawprint Prototyping](https://pawprintprototyping.org) fork, based on the [Makers of Swedens](http://makersofsweden.se) fork of [MemberMatters](https://github.com/membermatters/MemberMatters), created to handle community updates and maintenance.***
+
+It also includes a number of additional features, notably:
+* Support for SMTP server configuration (in addition to Postmark);
+* [Docuseal](https://www.docuseal.com/) integration for required signatures as part of the onboarding flow;
+* Induction requirement handling improvements;
+* More control over Profile field requirements;
+* Ongoing dependency updates;
 
 Docker images are published to [GHCR](https://github.com/PawprintPrototyping/MemberMatters/pkgs/container/membermatters).
 
@@ -15,8 +26,8 @@ MemberMatters is an open source membership, billing and access control solution 
   * Integration with Canvas or Moodle for a mandatory online induction course during sign up.
   * Support for manual account activation/deactivations for members without a Stripe subscription.
   * Self service billing (ie members can cancel their membership or update credit card themselves).
-  * Automatic swipe card deactivation on overdue payments.
-  * Automatic swipe card activation for returning members.
+  * Automatic access card deactivation on overdue payments.
+  * Automatic access card activation for returning members.
 * Single Sign On (SSO) provider with support for both OIDC and the discourse protocol.
 * Issue reporting form with Trello integration.
 * Access Control system built in including:
@@ -78,7 +89,7 @@ See the [screenshots](screenshots) folder for more screenshots.
 # Developers Information
 
 ## Getting Started
-[![Build Docker Image (Prod)](https://github.com/membermatters/MemberMatters/actions/workflows/build_docker.yml/badge.svg?branch=main)](https://github.com/membermatters/MemberMatters/actions/workflows/build_docker.yml)
+[![Build Docker Image (Prod)](https://github.com/PawprintPrototyping/MemberMatters/actions/workflows/build_docker.yml/badge.svg?branch=main)](https://github.com/membermatters/MemberMatters/actions/workflows/build_docker.release.yml)
 
 [![Build Docker Image (Dev Branch)](https://github.com/membermatters/MemberMatters/actions/workflows/build_docker.dev.yml/badge.svg)](https://github.com/membermatters/MemberMatters/actions/workflows/build_docker.dev.yml)
 
