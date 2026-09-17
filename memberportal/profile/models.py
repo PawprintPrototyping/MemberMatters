@@ -367,6 +367,7 @@ class InductionProviderState(models.Model):
         CANVAS = "canvas", "Canvas"
         MOODLE = "moodle", "Moodle"
         DOCUSEAL = "docuseal", "DocuSeal"
+        LEGACY = "legacy", "Legacy aggregate induction"
 
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"

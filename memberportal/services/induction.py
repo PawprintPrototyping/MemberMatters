@@ -87,12 +87,25 @@ def get_status(profile, states=None):
     state_by_requirement = {
         (state.provider, state.requirement_key): state for state in states
     }
+    legacy_state = state_by_requirement.get(("legacy", "legacy:last-induction"))
+    moodle_enabled = any(
+        requirement.provider == "moodle" for requirement in enabled_requirements()
+    )
     providers = []
 
     for requirement in enabled_requirements():
         state = state_by_requirement.get(
             (requirement.provider, requirement.requirement_key)
         )
+        # The former aggregate timestamp had no course or provider identity.
+        # It can satisfy the provider the old flow would have checked: Moodle
+        # when enabled, otherwise Canvas. It never proves Docuseal signing and
+        # never overrides a concrete requirement-local state.
+        if state is None and legacy_state:
+            if requirement.provider == "moodle" or (
+                requirement.provider == "canvas" and not moodle_enabled
+            ):
+                state = legacy_state
         is_complete = _is_current_completion(state, now)
         status = "complete" if is_complete else (state.status if state else "pending")
         error_code = "" if is_complete or not state else state.error_code
