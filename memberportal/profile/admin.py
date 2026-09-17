@@ -112,6 +112,19 @@ class ProfileAdmin(admin.ModelAdmin):
     pass
 
 
+@admin.register(InductionProviderState)
+class InductionProviderStateAdmin(admin.ModelAdmin):
+    list_display = (
+        "profile",
+        "provider",
+        "requirement_key",
+        "status",
+        "completed_at",
+        "checked_at",
+    )
+    readonly_fields = ("completed_at", "checked_at")
+
+
 @admin.register(UserEventLog)
 class UserEventLogAdmin(admin.ModelAdmin):
     readonly_fields = ("date",)

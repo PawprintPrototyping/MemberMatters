@@ -69,7 +69,9 @@ class GetMembers(APIView):
     def get(self, request):
         filtered = []
 
-        members_queryset = User.objects.select_related("profile")
+        members_queryset = User.objects.select_related("profile").prefetch_related(
+            "profile__induction_provider_states"
+        )
 
         screenName = request.GET.get("screenName")
         if screenName is not None:
@@ -97,13 +99,17 @@ class SignupProgress(APIView):
         profiles = (
             Profile.objects.filter(state__in=["noob", "inactive"])
             .select_related("user")
+            .prefetch_related("induction_provider_states")
             .all()
         )
 
         result = []
         for p in profiles:
-            data = p.get_basic_profile()
-            data["requiredSteps"] = p.can_signup()["requiredSteps"]
+            induction = p.get_induction_status()
+            data = p.get_basic_profile(induction=induction)
+            signup = p.can_signup(induction=induction)
+            data["requiredSteps"] = signup["requiredSteps"]
+            data["requirements"] = signup["requirements"]
             result.append(data)
 
         return Response(result)

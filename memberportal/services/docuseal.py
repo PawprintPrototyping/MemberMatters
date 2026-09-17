@@ -102,16 +102,15 @@ def create_submission_for_subscription(profile):
     profile.save()
 
 
-def get_docuseal_submission(profile):
-    if profile.memberdoc_id is None:
+def get_docuseal_submission(profile, submission_id=None):
+    submission_id = submission_id or profile.memberdoc_id
+    if submission_id is None:
         return None
 
-    logger.debug(
-        "Requesting {}".format("/api/submissions/" + str(profile.memberdoc_id))
-    )
+    logger.debug("Requesting {}".format("/api/submissions/" + str(submission_id)))
     try:
         response = requests.get(
-            url=config.DOCUSEAL_URL + "/api/submissions/" + str(profile.memberdoc_id),
+            url=config.DOCUSEAL_URL + "/api/submissions/" + str(submission_id),
             headers={"X-Auth-Token": config.DOCUSEAL_API_KEY},
         )
         logger.debug("Got response:\n{}".format(response.json()))

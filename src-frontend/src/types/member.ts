@@ -36,6 +36,23 @@ export const MemberProfileSchema = z.object({
   updateProfileRequired: z.boolean(),
   lastSeen: z.string().nullable(),
   lastInduction: z.string().nullable(),
+  induction: z
+    .object({
+      complete: z.boolean(),
+      providers: z.array(
+        z.object({
+          provider: z.string(),
+          status: z.string(),
+          complete: z.boolean(),
+          score: z.number().nullable(),
+          errorCode: z.string(),
+          actionUrl: z.string(),
+          completedAt: z.string().nullable(),
+          checkedAt: z.string().nullable(),
+        }),
+      ),
+    })
+    .optional(),
   termsAcceptedAt: z.string().nullable(),
   stripe: z.object({
     cardExpiry: z.string(),

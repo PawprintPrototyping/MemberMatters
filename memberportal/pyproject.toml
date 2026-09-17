@@ -61,6 +61,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "coverage==7.16.1",
     "pre-commit==4.6.2",
 ]
 

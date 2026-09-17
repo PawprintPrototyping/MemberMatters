@@ -18,12 +18,7 @@ from rest_framework.views import APIView
 import stripe
 import logging
 import uuid
-from services.canvas import Canvas
-from services.moodle_integration import (
-    moodle_get_course_activity_completion_status,
-    moodle_get_user_from_email,
-)
-from services.docuseal import get_docuseal_submission, submission_is_complete
+from services.induction import refresh as refresh_induction
 from services.emails import send_email_to_admin
 from constance import config
 from django.db import transaction, IntegrityError
@@ -641,89 +636,24 @@ class AssignAccessCard(APIView):
 
 
 class CheckInductionStatus(APIView):
-    """
-    post: checks if the member has completed the induction (via the canvas/moodle API).
-    """
+    """Refresh every enabled induction provider and return its local status."""
 
     def post(self, request):
-        if "induction" not in request.user.profile.can_signup()["requiredSteps"]:
-            return Response({"success": True, "score": 0, "notRequired": True})
-
-        score = 0
-
-        if config.MOODLE_INDUCTION_ENABLED:
-            try:
-                moodle_user = moodle_get_user_from_email(request.user.email)
-                activities = moodle_get_course_activity_completion_status(
-                    config.MOODLE_INDUCTION_COURSE_ID, moodle_user["id"]
-                )
-                score = activities["percentage_completed"]
-            except RuntimeError as e:
-                # Helper raises RuntimeError when 0 or >1 Moodle users match
-                # the member's email. Most common case: member hasn't set up
-                # their Moodle account yet — return a friendly response so
-                # the frontend can prompt them, instead of 500-ing.
-                logger.info("Moodle lookup for %s: %s", request.user.email, e)
-                return Response(
-                    {
-                        "success": False,
-                        "score": 0,
-                        "message": "signup.noMoodleAccount",
-                    }
-                )
-            except Exception as e:
-                # Network / JSON / unexpected Moodle response — log and
-                # surface a generic error rather than leaking the trace.
-                capture_exception(e)
-                return Response(
-                    {
-                        "success": False,
-                        "score": 0,
-                        "message": "signup.moodleUnavailable",
-                    }
-                )
-
-        elif config.CANVAS_INDUCTION_ENABLED:
-            try:
-                canvas_api = Canvas()
-            except OperationalError as error:
-                capture_exception(error)
-                logger.error(error)
-                return Response({"success": False, "score": 0})
-
-            score = (
-                canvas_api.get_student_score_for_course(
-                    config.CANVAS_INDUCTION_COURSE_ID, request.user.email
-                )
-                or 0
-            )
-
-        try:
-            if score or config.MIN_INDUCTION_SCORE == 0:
-                induction_passed = score >= config.MIN_INDUCTION_SCORE
-
-                # if member doc is on, but the document has not been completed prevent setting the user's induction date
-                if config.ENABLE_DOCUSEAL_INTEGRATION:
-                    submission = get_docuseal_submission(request.user.profile)
-                    if not submission_is_complete(submission):
-                        return Response(
-                            {
-                                "success": False,
-                                "score": score,
-                                "error": "User has passed induction but has NOT completed membership agreement docs",
-                            }
-                        )
-
-                if induction_passed:
-                    request.user.profile.update_last_induction()
-
-                    return Response({"success": True, "score": score})
-            return Response({"success": False, "score": score})
-
-        except Exception as e:
-            capture_exception(e)
-            logger.error(e)
-            return Response({"success": False, "score": 0, "error": str(e)})
+        induction = refresh_induction(request.user.profile)
+        scores = [
+            provider["score"]
+            for provider in induction["providers"]
+            if provider["score"] is not None
+        ]
+        return Response(
+            {
+                "success": induction["complete"],
+                # Retained for older clients while they move to induction.providers.
+                "score": max(scores, default=0),
+                "notRequired": not induction["providers"],
+                "induction": induction,
+            }
+        )
 
 
 def _serialize_complete_signup(result: CompleteSignupResult) -> Response:

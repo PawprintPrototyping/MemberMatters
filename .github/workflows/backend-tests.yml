@@ -1,0 +1,52 @@
+name: Django Backend Tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+      - dev
+      - staging
+
+permissions: {}
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: memberportal
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@eb1897b8dc4b5d5bfe39a428a8f2304605e0983c # v7.0.0
+
+      - name: Install backend dependencies
+        run: uv sync --frozen
+
+      - name: Run backend tests
+        run: |
+          uv run coverage run --source=. manage.py test
+          uv run coverage xml -o coverage.xml
+        env:
+          MM_ENV: Development
+          MM_DB_LOCATION: ${{ runner.temp }}/membermatters.sqlite3
+          MM_LOG_LOCATION: ${{ runner.temp }}/django.log
+
+      - name: Upload backend coverage to Coveralls
+        uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329 # v2.3.8
+        with:
+          file: memberportal/coverage.xml
+          format: cobertura
+          base-path: memberportal
+          github-token: ${{ secrets.GITHUB_TOKEN }}

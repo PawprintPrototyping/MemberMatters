@@ -2,10 +2,7 @@
   <q-page class="column flex justify-start items-center">
     <div class="column flex content-start justify-center">
       <q-banner
-        v-if="
-          profile.lastInduction === null &&
-          (features.signup.enableInduction || features.enableDocusealMemberDocs)
-        "
+        v-if="profile.induction && !profile.induction.complete"
         inline-actions
         rounded
         class="bg-red text-white q-ma-md"
@@ -15,9 +12,16 @@
         </template>
         <div v-if="profile.inductionLink.length != 0">
           {{ $t('access.inductionIncompleteTasks') }}
-          <li v-for="(link, index) in profile.inductionLink" :key="index">
-            <a :href="link" target="_blank">Task {{ index + 1 }}</a>
-          </li>
+          <template
+            v-for="provider in profile.induction.providers"
+            :key="provider.provider"
+          >
+            <li v-if="!provider.complete && provider.actionUrl">
+              <a :href="provider.actionUrl" target="_blank">
+                {{ $t(`signup.inductionProvider.${provider.provider}`) }}
+              </a>
+            </li>
+          </template>
         </div>
         <div v-else>{{ $t('access.inductionIncompleteNoTasks') }}</div>
       </q-banner>
