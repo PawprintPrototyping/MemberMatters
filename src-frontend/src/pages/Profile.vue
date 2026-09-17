@@ -12,9 +12,16 @@
         </template>
         <div v-if="profile.inductionLink.length != 0">
           {{ $t('access.inductionIncompleteTasks') }}
-          <li v-for="(link, index) in profile.inductionLink" :key="index">
-            <a :href="link" target="_blank">Task {{ index + 1 }}</a>
-          </li>
+          <template
+            v-for="provider in profile.induction.providers"
+            :key="provider.provider"
+          >
+            <li v-if="!provider.complete && provider.actionUrl">
+              <a :href="provider.actionUrl" target="_blank">
+                {{ $t(`signup.inductionProvider.${provider.provider}`) }}
+              </a>
+            </li>
+          </template>
         </div>
         <div v-else>{{ $t('access.inductionIncompleteNoTasks') }}</div>
       </q-banner>
