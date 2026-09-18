@@ -1,12 +1,11 @@
 # Getting started (Django backend)
 
 First step is to grab a copy of this repository. You will need to make sure you have python installed,
-Python 3.14.x (3.14 is what the Docker image uses). Dependencies are managed with
+Python 3.14.x (3.14 is what the Docker image uses). Dependencies are managed exclusively with
 [uv](https://docs.astral.sh/uv/); the resolved dependency graph lives in `uv.lock` and
-`pyproject.toml` is the source of truth for what is declared. `requirements.txt` is a
-`uv export` of the lock and is only kept as a fallback for environments without `uv`.
+`pyproject.toml` is the source of truth for what is declared.
 
-## uv (recommended)
+## Setup with uv
 
 Install `uv` from https://docs.astral.sh/uv/getting-started/installation/, then from this
 folder run:
@@ -27,82 +26,6 @@ uv add <package>              # adds to [project.dependencies]
 uv add --group dev <package>  # adds to the dev group
 uv lock --upgrade             # refresh the lock against upstream ranges
 ```
-
-After changing the lock, regenerate the pip-compatible fallback:
-
-```bash
-uv export --no-hashes --no-dev --no-emit-project -o requirements.txt
-```
-
-## pip fallback
-
-If you can't use `uv`, the exported `requirements.txt` still works with pip. Follow the
-section below for your platform to create a virtual environment and install from it.
-
-Note that `requirements.txt` is exported with `--no-dev`, so it contains runtime dependencies only. Install the dev hook runner separately:
-
-```bash
-pip3 install pre-commit
-```
-
-### Linux (Ubuntu)
-
-Make sure you have all the common programming dependencies installed:
-
-```bash
-sudo apt install build-essential libssl-dev libffi-dev python3-dev python3 python3-pip python3-venv
-```
-
-Then create a virtual environment and install our python dependencies:
-
-```bash
-python3 -m venv venv
-source venv/bin/activate
-pip3 install -r requirements.txt
-```
-
-You should see `(venv) $` at your command prompt, letting you know that you’re running the proper virtualenv install. To deactivate, you can just run the following to deactivate the environment.
-
-```bash
-deactivate
-```
-
-### macOS
-
-You should install and use python3 with virtualenv on macOS. You may also need to install `mysql` via brew if you don't have it already.
-
-```bash
-brew install python3 mysql
-pip3 install virtualenv
-virtualenv venv
-source venv/bin/activate
-pip3 install -r requirements.txt
-```
-
-You should see `(venv) $` at your command prompt, letting you know that you’re running the proper virtualenv install. To deactivate, you can just run the following to deactivate the environment.
-
-```bash
-deactivate
-```
-
-#### Notes
-
-If you're running macOS Big Sur (and/or an Apple Silicon Mac), you may need to run this command to install the dependencies:
-
-```
-CFLAGS='-I/usr/local/opt/zlib/include -L/usr/local/opt/zlib/lib' pip3 install -r requirements.txt
-```
-
-### Windows
-
-Please follow the instructions below to setup dev environment in Windows (tested in Windows 7 & 10).
-
-- Download & install Python 3.14.x from [here](https://www.python.org/downloads/)
-- CD into the cloned repository.
-- Assuming `pip` and `virtualenv` is already installed as part of the package, execute: `py -3 -m venv venv`
-- Activate the venv by running: `venv\Scripts\activate`
-- Install dependencies by running: `pip install -r requirements.txt`
-- You're all set up. Follow the instructions below to start the dev server.
 
 ## Running the dev server
 
