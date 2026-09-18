@@ -781,6 +781,209 @@ class SubscriptionInfo(StripeAPIView):
             return Response({"success": False})
 
 
+class PaymentPlanSwitch(StripeAPIView):
+    """Switches an active member to another compatible payment plan."""
+
+    PRORATION_BEHAVIOR = "create_prorations"
+
+    @staticmethod
+    def _stripe_value(resource, name, default=None):
+        if isinstance(resource, dict):
+            return resource.get(name, default)
+        return getattr(resource, name, default)
+
+    @classmethod
+    def _subscription_items(cls, subscription):
+        items = cls._stripe_value(subscription, "items")
+        return cls._stripe_value(items, "data", []) or []
+
+    @classmethod
+    def _price_id(cls, item):
+        price = cls._stripe_value(item, "price")
+        if isinstance(price, str):
+            return price
+        return cls._stripe_value(price, "id")
+
+    def post(self, request):
+        plan_id = request.data.get("planId")
+        if not plan_id:
+            return Response(
+                {"success": False, "message": "billing.planSwitchPlanRequired"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        target_plan = get_object_or_404(PaymentPlan, pk=plan_id, visible=True)
+
+        with transaction.atomic():
+            locked_profile = Profile.objects.select_for_update().get(
+                pk=request.user.profile.pk
+            )
+
+            if locked_profile.state_locked:
+                return Response(
+                    {"success": False, "message": "billing.stateLocked"},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+            if (
+                locked_profile.state != "active"
+                or locked_profile.subscription_status != "active"
+                or not locked_profile.membership_plan
+                or not locked_profile.stripe_subscription_id
+            ):
+                return Response(
+                    {"success": False, "message": "billing.planSwitchActiveOnly"},
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            current_plan = locked_profile.membership_plan
+            if current_plan.pk == target_plan.pk:
+                return Response(
+                    {"success": False, "message": "billing.planSwitchSamePlan"},
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            current_signature = (
+                current_plan.interval,
+                current_plan.interval_count,
+                current_plan.currency.lower(),
+            )
+            target_signature = (
+                target_plan.interval,
+                target_plan.interval_count,
+                target_plan.currency.lower(),
+            )
+            if current_signature != target_signature:
+                return Response(
+                    {
+                        "success": False,
+                        "message": "billing.planSwitchIntervalMismatch",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            try:
+                subscription = stripe.Subscription.retrieve(
+                    locked_profile.stripe_subscription_id
+                )
+            except stripe.error.StripeError as error:
+                capture_exception(error)
+                request.user.log_event(
+                    "Stripe error while retrieving subscription for plan switch.",
+                    "stripe",
+                    str(error),
+                )
+                return Response(
+                    {"success": False, "message": "billing.stripeError"},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
+
+            if self._stripe_value(subscription, "status") != "active":
+                return Response(
+                    {
+                        "success": False,
+                        "message": "billing.planSwitchSubscriptionInactive",
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            subscription_items = self._subscription_items(subscription)
+            if len(subscription_items) != 1:
+                request.user.log_event(
+                    "Cannot switch a membership subscription with an unexpected item count.",
+                    "stripe",
+                    {"subscription": locked_profile.stripe_subscription_id},
+                )
+                return Response(
+                    {
+                        "success": False,
+                        "message": "billing.planSwitchSubscriptionInvalid",
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            subscription_item = subscription_items[0]
+            subscription_item_id = self._stripe_value(subscription_item, "id")
+            if not subscription_item_id:
+                return Response(
+                    {
+                        "success": False,
+                        "message": "billing.planSwitchSubscriptionInvalid",
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            if self._price_id(subscription_item) != current_plan.stripe_id:
+                request.user.log_event(
+                    "Local membership plan does not match Stripe during plan switch.",
+                    "stripe",
+                    {
+                        "subscription": locked_profile.stripe_subscription_id,
+                        "local_price": current_plan.stripe_id,
+                        "stripe_price": self._price_id(subscription_item),
+                    },
+                )
+                return Response(
+                    {"success": False, "message": "billing.planSwitchOutOfSync"},
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            idempotency_token = (
+                request.headers.get("Idempotency-Key") or uuid.uuid4().hex
+            )
+            try:
+                modified_subscription = stripe.Subscription.modify(
+                    locked_profile.stripe_subscription_id,
+                    items=[
+                        {
+                            "id": subscription_item_id,
+                            "price": target_plan.stripe_id,
+                        }
+                    ],
+                    proration_behavior=self.PRORATION_BEHAVIOR,
+                    idempotency_key=(
+                        f"plan-switch-{locked_profile.pk}-{idempotency_token[:200]}"
+                    ),
+                )
+            except stripe.error.StripeError as error:
+                capture_exception(error)
+                request.user.log_event(
+                    "Stripe error while switching membership plan.",
+                    "stripe",
+                    str(error),
+                )
+                return Response(
+                    {"success": False, "message": "billing.stripeError"},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
+
+            modified_items = self._subscription_items(modified_subscription)
+            if (
+                self._stripe_value(modified_subscription, "status") != "active"
+                or len(modified_items) != 1
+                or self._price_id(modified_items[0]) != target_plan.stripe_id
+            ):
+                request.user.log_event(
+                    "Stripe did not confirm the requested membership plan switch.",
+                    "stripe",
+                    {"subscription": locked_profile.stripe_subscription_id},
+                )
+                return Response(
+                    {"success": False, "message": "billing.planSwitchUnconfirmed"},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
+
+            locked_profile.membership_plan = target_plan
+            locked_profile.save(update_fields=["membership_plan"])
+            request.user.log_event(
+                "Successfully switched membership payment plan.",
+                "stripe",
+                {"plan_id": target_plan.pk},
+            )
+
+        return Response({"success": True, "plan": target_plan.get_object()})
+
+
 def _no_plan_response(user):
     user.log_event("Member tried to modify nonexistant membership plan.", "stripe")
     return Response(

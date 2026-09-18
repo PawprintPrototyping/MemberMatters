@@ -663,6 +663,19 @@ export default {
     paymentMethodInvoice: 'Manual Renewal',
     subscriptionInfo: 'Subscription Info',
     subscriptionUnavailable: 'Could not load subscription details right now.',
+    switchTitle: 'Change payment plan',
+    switchDescription:
+      'Choose another plan with the same billing interval. Your current billing method will stay the same.',
+    switchConfirmTitle: 'Change payment plan?',
+    switchConfirmDescription:
+      'Your plan will change to {plan} now. Any price difference will be included on your next invoice.',
+    switchSuccess: 'Payment plan updated',
+    switchSuccessDescription:
+      'Your payment plan has been changed successfully.',
+    switchFailed: 'Payment plan change failed',
+    switchUnavailable: 'Could not load alternative payment plans right now.',
+    switchNoOptions:
+      'There are no other payment plans with the same billing interval.',
     accountOnlyWarning:
       "Your profile is currently set to 'account only'. This is because you skipped this process last time. You're welcome to continue using this account for our online services, or you can signup to become a member below. ",
     profileAccountOnlyWarning:
@@ -878,6 +891,20 @@ export default {
       'New membership subscriptions are currently closed.',
     stripeError:
       "Something went wrong talking to our payment provider. Please try again in a moment, or contact us if it doesn't clear up.",
+    planSwitchPlanRequired: 'Please choose a payment plan.',
+    planSwitchActiveOnly:
+      'Payment plans can only be changed for an active membership.',
+    planSwitchSamePlan: 'You are already using that payment plan.',
+    planSwitchIntervalMismatch:
+      'You can only switch to a payment plan with the same billing interval and currency.',
+    planSwitchSubscriptionInactive:
+      'Your Stripe subscription is not active, so the payment plan cannot be changed.',
+    planSwitchSubscriptionInvalid:
+      'Your subscription could not be changed because its billing configuration is invalid.',
+    planSwitchOutOfSync:
+      'Your payment plan is out of sync with Stripe. Please contact us for help.',
+    planSwitchUnconfirmed:
+      'Stripe did not confirm the payment plan change. Please contact us for help.',
   },
   pendingInvoices: {
     title: 'Pending Invoices',
