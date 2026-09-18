@@ -29,7 +29,7 @@ attrs==26.1.0
     #   ics
     #   service-identity
     #   twisted
-autobahn==25.12.2 ; platform_python_implementation == 'PyPy' and sys_platform == 'win32'
+autobahn==26.7.1 ; platform_python_implementation == 'PyPy' and sys_platform == 'win32'
     # via daphne
 autobahn==26.7.1 ; platform_python_implementation != 'PyPy' or sys_platform != 'win32'
     # via daphne
@@ -79,7 +79,7 @@ click-repl==0.3.0
     # via celery
 constantly==23.10.4
     # via twisted
-cron-descriptor==1.4.5
+cron-descriptor==2.1.0
     # via django-celery-beat
 cryptography==50.0.1
     # via
