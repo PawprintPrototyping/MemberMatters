@@ -1,20 +1,7 @@
-import axios, { AxiosInstance } from 'axios';
 import { Platform } from 'quasar';
 import { boot } from 'quasar/wrappers';
 import store from '../store';
-
-declare module '@vue/runtime-core' {
-  interface ComponentCustomProperties {
-    $axios: AxiosInstance;
-  }
-}
-
-const api = axios.create({
-  baseURL: import.meta.env.apiBaseUrl || '',
-  withCredentials: true,
-  xsrfCookieName: 'csrftoken',
-  xsrfHeaderName: 'X-CSRFTOKEN',
-});
+import { api } from '../services/api';
 
 export default boot(({ app }) => {
   // This interceptor adds the JWT to the request if it exists (ie mobile app)

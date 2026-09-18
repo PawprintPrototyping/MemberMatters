@@ -9,10 +9,13 @@
 // Configuration for your app
 // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js
 
-const { configure } = require('quasar/wrappers');
-const path = require('path');
+import { configure } from 'quasar/wrappers';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-module.exports = configure(function (ctx) {
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default configure(function (ctx) {
   return {
     eslint: {
       warnings: true,
@@ -25,15 +28,7 @@ module.exports = configure(function (ctx) {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-vite/boot-files
-    boot: [
-      'vuex',
-      'sentry',
-      'i18n',
-      'axios',
-      'routeGuards',
-      'capacitor',
-      'apexcharts',
-    ],
+    boot: ['vuex', 'sentry', 'i18n', 'axios', 'routeGuards', 'capacitor'],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#css
     css: ['app.scss'],
@@ -75,6 +70,9 @@ module.exports = configure(function (ctx) {
         // Emit separate source-map files for GlitchTip.
         viteConf.build = viteConf.build || {};
         viteConf.build.sourcemap = 'hidden';
+        // ApexCharts is lazy-loaded by the Stats route; allow the intentionally
+        // large chart/vendor chunks to stay below the 1 MiB budget.
+        viteConf.build.chunkSizeWarningLimit = 1024;
 
         viteConf.resolve = viteConf.resolve || {};
         viteConf.resolve.tsconfigPaths = true;

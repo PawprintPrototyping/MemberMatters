@@ -2,6 +2,9 @@
 .thumbs.db
 node_modules
 
+# Generated Quasar config diagnostics
+quasar.config.js.temporary.compiled.*.js
+
 # Quasar core related directories
 .quasar
 /dist

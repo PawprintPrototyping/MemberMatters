@@ -16,7 +16,7 @@ import { defineComponent } from 'vue';
 import { setCssVar, Platform } from 'quasar';
 import KioskSettings from '@components/Settings.vue';
 import LoginCard from '@components/LoginCard.vue';
-import { api } from 'boot/axios';
+import { api } from 'src/services/api';
 
 setCssVar('dark', '#313131');
 
