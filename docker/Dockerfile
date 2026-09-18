@@ -127,7 +127,9 @@ LABEL description="Runtime image for the MemberMatters software."
 VOLUME /usr/src/data/
 VOLUME /usr/src/logs/
 
-RUN mkdir -p /usr/src/app/frontend /usr/src/logs /usr/src/data
+RUN mkdir -p /usr/src/app/frontend /usr/src/logs /usr/src/data \
+    /tmp/nginx/client_body /tmp/nginx/proxy \
+    && chown -R nobody:nogroup /tmp/nginx
 
 # Runtime venv - contains django, daphne, celery, and everything else
 # from uv.lock. Putting it on PATH means container_start.sh's plain
