@@ -41,6 +41,7 @@ module.exports = configure(function (ctx) {
     // https://github.com/quasarframework/quasar/tree/dev/extras
     extras: [
       'mdi-v7',
+      'material-symbols-outlined',
       'roboto-font', // optional, you are not bound to it
     ],
 

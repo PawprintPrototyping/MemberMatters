@@ -19,7 +19,7 @@ export default {
   dollar: 'fas fa-dollar-sign',
   doors: 'mdi-door-closed-lock',
   interlocks: 'mdi-power-plug',
-  kiosks: 'mdi-desktop-mac',
+  kiosks: 'sym_o_desktop_mac',
 
   tools: 'mdi-tools',
   admintools: 'mdi-toolbox',
