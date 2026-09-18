@@ -1,6 +1,7 @@
 from access.models import DoorLog, InterlockLog
 from profile.models import Profile
 from api_meeting.models import Meeting
+from api_meeting.permissions import ProxyVotingPermission
 from constance import config
 from services.emails import send_email_to_admin
 from services import discord
@@ -46,7 +47,7 @@ class SwipesList(APIView):
                 {
                     "name": door.door.name,
                     "date": door.date,
-                    "user": door.user.profile.get_full_name(),
+                    "user": door.user.profile.get_display_name(),
                 }
             )
 
@@ -54,7 +55,7 @@ class SwipesList(APIView):
             user_ended = None
 
             if interlock.user_ended:
-                user_ended = interlock.user_ended.profile.get_full_name()
+                user_ended = interlock.user_ended.profile.get_display_name()
 
             interlocks.append(
                 {
@@ -62,7 +63,7 @@ class SwipesList(APIView):
                     "sessionStart": interlock.date_started,
                     "sessionEnd": interlock.date_ended,
                     "sessionComplete": True if interlock.date_ended else False,
-                    "userOn": interlock.user_started.profile.get_full_name(),
+                    "userOn": interlock.user_started.profile.get_display_name(),
                     "userOff": user_ended,
                 }
             )
@@ -95,7 +96,7 @@ class Lastseen(APIView):
                 last_seen.append(
                     {
                         "id": member.id,
-                        "user": member.get_full_name(),
+                        "user": member.get_display_name(),
                         "never": False,
                         "date": member.last_seen,
                     }
@@ -103,7 +104,7 @@ class Lastseen(APIView):
 
             else:
                 last_seen.append(
-                    {"id": member.id, "user": member.get_full_name(), "never": True}
+                    {"id": member.id, "user": member.get_display_name(), "never": True}
                 )
 
         return Response(last_seen, status=status.HTTP_200_OK)
@@ -331,7 +332,7 @@ class MeetingList(APIView):
     get: Returns a list of upcoming meetings that a member is entitled to vote at.
     """
 
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (ProxyVotingPermission,)
     queryset = Meeting.objects.filter(date__gt=timezone.now())
 
     def get(self, request):
@@ -354,11 +355,13 @@ class Members(APIView):
     get: gets a list of all members.
     """
 
+    permission_classes = (ProxyVotingPermission,)
+
     def get(self, request):
         def get_member(member):
             return {
                 "id": member.id,
-                "name": member.get_full_name(),
+                "name": member.get_display_name(),
                 "screenName": member.screen_name,
             }
 
