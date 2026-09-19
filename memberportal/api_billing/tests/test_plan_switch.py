@@ -9,6 +9,10 @@ from api_admin_tools.models import MemberTier, PaymentPlan
 from api_billing.models import PaymentPlanSwitchOperation
 from api_billing.plan_switch import (
     MAX_RECOVERY_ATTEMPTS,
+    _apply_operation,
+    _price_id,
+    _record_operation_error,
+    _stripe_value,
     process_payment_plan_switch,
 )
 from profile.models import Profile, User
@@ -94,6 +98,16 @@ class PaymentPlanSwitchTests(TestCase):
             {"planId": self.target_plan.pk},
             format="json",
             **headers,
+        )
+
+    def make_operation(self, status=PaymentPlanSwitchOperation.STATUS_PENDING):
+        return PaymentPlanSwitchOperation.objects.create(
+            profile=self.profile,
+            current_plan=self.current_plan,
+            target_plan=self.target_plan,
+            stripe_subscription_id=self.profile.stripe_subscription_id,
+            idempotency_key=f"plan-switch-helper-{self.profile.pk}-{status}",
+            status=status,
         )
 
     def expected_error(self, request):
@@ -326,3 +340,150 @@ class PaymentPlanSwitchTests(TestCase):
         self.assertEqual(
             blocked_response.data["message"], "billing.planSwitchRecoveryFailed"
         )
+
+    def test_stripe_helpers_accept_dict_and_string_objects(self):
+        self.assertEqual(_stripe_value({"id": "price_1"}, "id"), "price_1")
+        self.assertEqual(_price_id({"price": "price_1"}), "price_1")
+
+    def test_process_missing_operation_is_already_complete(self):
+        self.assertTrue(process_payment_plan_switch(999999))
+
+    def test_apply_operation_is_idempotent_when_profile_already_target(self):
+        operation = self.make_operation()
+        self.profile.membership_plan = self.target_plan
+        self.profile.save(update_fields=["membership_plan"])
+
+        result = _apply_operation(operation.pk)
+
+        self.assertEqual(result.pk, self.target_plan.pk)
+        self.assertFalse(
+            PaymentPlanSwitchOperation.objects.filter(pk=operation.pk).exists()
+        )
+
+    def test_apply_operation_rejects_profile_drift(self):
+        operation = self.make_operation()
+        self.profile.stripe_subscription_id = "sub_changed"
+        self.profile.save(update_fields=["stripe_subscription_id"])
+
+        with self.assertRaisesMessage(RuntimeError, "Profile changed"):
+            _apply_operation(operation.pk)
+
+        self.assertTrue(
+            PaymentPlanSwitchOperation.objects.filter(pk=operation.pk).exists()
+        )
+
+    @patch("api_billing.plan_switch.capture_exception")
+    @patch("api_billing.plan_switch.PaymentPlanSwitchOperation.save")
+    def test_record_operation_error_tolerates_database_failure(
+        self, save, capture_exception
+    ):
+        operation = self.make_operation()
+        save.side_effect = RuntimeError("database unavailable")
+
+        response = _record_operation_error(operation.pk, RuntimeError("stripe"))
+
+        self.assertEqual(response.status_code, 503)
+        capture_exception.assert_called_once()
+
+    @patch("api_billing.plan_switch.stripe.Price.retrieve")
+    @patch("api_billing.plan_switch.stripe.Subscription.modify")
+    @patch("api_billing.plan_switch.stripe.Subscription.retrieve")
+    def test_unconfirmed_stripe_update_is_retried(
+        self, retrieve, modify, price_retrieve
+    ):
+        operation = self.make_operation()
+        retrieve.return_value = self.subscription(self.current_plan.stripe_id)
+        price_retrieve.return_value = self.price()
+        modify.return_value = self.subscription(self.current_plan.stripe_id)
+
+        self.assertFalse(process_payment_plan_switch(operation.pk))
+        operation.refresh_from_db()
+        self.assertEqual(operation.attempt_count, 1)
+        self.assertEqual(operation.status, PaymentPlanSwitchOperation.STATUS_PENDING)
+
+    def test_switch_rejects_missing_plan_id(self):
+        response = self.expected_error(
+            lambda: self.client.post("/api/billing/myplan/switch/", {}, format="json")
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["message"], "billing.planSwitchPlanRequired")
+
+    def test_switch_rejects_locked_member(self):
+        self.profile.state_locked = True
+        self.profile.save(update_fields=["state_locked"])
+
+        response = self.expected_error(self.switch)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data["message"], "billing.stateLocked")
+
+    def test_switch_rejects_same_plan(self):
+        response = self.expected_error(
+            lambda: self.client.post(
+                "/api/billing/myplan/switch/",
+                {"planId": self.current_plan.pk},
+                format="json",
+            )
+        )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.data["message"], "billing.planSwitchSamePlan")
+
+    def test_switch_rejects_existing_pending_and_failed_operations(self):
+        pending = self.make_operation()
+        pending_response = self.expected_error(self.switch)
+        self.assertEqual(pending_response.status_code, 409)
+        self.assertEqual(
+            pending_response.data["message"], "billing.planSwitchRecoveryPending"
+        )
+
+        pending.delete()
+        self.make_operation(status=PaymentPlanSwitchOperation.STATUS_FAILED)
+        failed_response = self.expected_error(self.switch)
+        self.assertEqual(failed_response.status_code, 409)
+        self.assertEqual(
+            failed_response.data["message"], "billing.planSwitchRecoveryFailed"
+        )
+
+    @patch("api_billing.plan_switch.stripe.Subscription.retrieve")
+    def test_process_rejects_unexpected_subscription_item_count(self, retrieve):
+        operation = self.make_operation()
+        retrieve.return_value = SimpleNamespace(
+            status="active", items=SimpleNamespace(data=[])
+        )
+
+        result = process_payment_plan_switch(operation.pk)
+
+        self.assertIsInstance(result, Exception)
+        self.assertEqual(result.message, "billing.planSwitchSubscriptionInvalid")
+        self.assertFalse(
+            PaymentPlanSwitchOperation.objects.filter(pk=operation.pk).exists()
+        )
+
+    @patch("api_billing.plan_switch.stripe.Subscription.retrieve")
+    def test_process_rejects_unexpected_current_stripe_price(self, retrieve):
+        operation = self.make_operation()
+        retrieve.return_value = self.subscription("price_unexpected")
+
+        result = process_payment_plan_switch(operation.pk)
+
+        self.assertIsInstance(result, Exception)
+        self.assertEqual(result.message, "billing.planSwitchOutOfSync")
+        self.assertFalse(
+            PaymentPlanSwitchOperation.objects.filter(pk=operation.pk).exists()
+        )
+
+    @patch("api_billing.plan_switch.process_payment_plan_switch")
+    def test_switch_reports_terminal_recovery_failure(self, process):
+        def fail_and_mark_failed(operation_id):
+            PaymentPlanSwitchOperation.objects.filter(pk=operation_id).update(
+                status=PaymentPlanSwitchOperation.STATUS_FAILED
+            )
+            return False
+
+        process.side_effect = fail_and_mark_failed
+        response = self.expected_error(self.switch)
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.data["message"], "billing.planSwitchRecoveryFailed")
