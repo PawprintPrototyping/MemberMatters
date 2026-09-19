@@ -1,5 +1,5 @@
-import { api } from 'boot/axios';
-import { initSentry } from 'boot/sentry';
+import { api } from 'src/services/api';
+import { initSentry } from 'src/services/sentry';
 
 export default {
   namespaced: true,

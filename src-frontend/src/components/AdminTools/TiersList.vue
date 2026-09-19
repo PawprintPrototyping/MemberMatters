@@ -134,7 +134,7 @@ import { useStore } from 'vuex';
 import icons from '../../icons';
 import formatMixin from '../../mixins/formatMixin';
 import formMixin from '../../mixins/formMixin';
-import { api } from 'boot/axios';
+import { api } from 'src/services/api';
 
 export default defineComponent({
   name: 'TiersList',

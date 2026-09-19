@@ -280,7 +280,7 @@
 import { defineComponent } from 'vue';
 import { mapGetters, mapActions } from 'vuex';
 import icons from '@icons';
-import { api } from 'boot/axios';
+import { api } from 'src/services/api';
 import TermsAcceptanceCard from '@components/Billing/TermsAcceptanceCard.vue';
 
 export default defineComponent({

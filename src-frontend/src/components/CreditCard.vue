@@ -36,9 +36,9 @@
 </template>
 
 <script>
-import VisaLogo from 'app/public/visa-logo.jpg';
-import MastercardLogo from 'app/public/mastercard-logo.png';
-import AmexLogo from 'app/public/amex-logo.png';
+const VisaLogo = '/visa-logo.jpg';
+const MastercardLogo = '/mastercard-logo.png';
+const AmexLogo = '/amex-logo.png';
 import icons from '../icons';
 
 export default {

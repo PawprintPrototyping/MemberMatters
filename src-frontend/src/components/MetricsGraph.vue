@@ -10,12 +10,14 @@
 </template>
 
 <script>
+import VueApexCharts from 'vue3-apexcharts';
 import formatMixin from 'src/mixins/formatMixin';
 
 const initiallyHiddenStates = new Set(['inactive', 'accountonly', 'noob']);
 
 export default {
   name: 'MetricsGraph',
+  components: { apexchart: VueApexCharts },
   mixins: [formatMixin],
   props: {
     metricsData: {

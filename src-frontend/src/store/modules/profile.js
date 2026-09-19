@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import idleTimeout from 'idle-timeout';
 import { Platform } from 'quasar';
-import { api } from 'src/boot/axios';
+import { api } from 'src/services/api';
 // import Vue from "vue";
 
 const getDefaultState = () => ({

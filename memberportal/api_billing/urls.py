@@ -18,6 +18,11 @@ urlpatterns = [
         name="PaymentPlanSignup",
     ),
     path(
+        "api/billing/myplan/switch/",
+        views.PaymentPlanSwitch.as_view(),
+        name="PaymentPlanSwitch",
+    ),
+    path(
         "api/billing/myplan/resume/",
         views.PaymentPlanResume.as_view(),
         name="PaymentPlanResume",

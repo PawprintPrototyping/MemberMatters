@@ -10,6 +10,7 @@ from profile.models import (
 )
 from api_admin_tools.models import *
 from .models import ProcessedStripeEvent
+from .plan_switch import switch_payment_plan
 
 from rest_framework import status, permissions
 from rest_framework.response import Response
@@ -779,6 +780,42 @@ class SubscriptionInfo(StripeAPIView):
                 return Response({"success": True, "subscription": subscription})
 
             return Response({"success": False})
+
+
+class PaymentPlanSwitch(StripeAPIView):
+    """Switches an active member to another compatible payment plan."""
+
+    PRORATION_BEHAVIOR = "create_prorations"
+
+    @staticmethod
+    def _stripe_value(resource, name, default=None):
+        if isinstance(resource, dict):
+            return resource.get(name, default)
+        return getattr(resource, name, default)
+
+    @classmethod
+    def _subscription_items(cls, subscription):
+        items = cls._stripe_value(subscription, "items")
+        return cls._stripe_value(items, "data", []) or []
+
+    @classmethod
+    def _price_id(cls, item):
+        price = cls._stripe_value(item, "price")
+        if isinstance(price, str):
+            return price
+        return cls._stripe_value(price, "id")
+
+    @classmethod
+    def _price_signature(cls, price):
+        recurring = cls._stripe_value(price, "recurring") or {}
+        return (
+            cls._stripe_value(recurring, "interval"),
+            cls._stripe_value(recurring, "interval_count"),
+            str(cls._stripe_value(price, "currency", "")).lower(),
+        )
+
+    def post(self, request):
+        return switch_payment_plan(request)
 
 
 def _no_plan_response(user):
