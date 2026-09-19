@@ -238,6 +238,19 @@ class Login(APIView):
 
         # correct login details
         if user is not None:
+            # Enforced staff users must use AllAuth so its MFA stage cannot be
+            # bypassed by the legacy custom login endpoint.
+            from membermatters.mfa_policy import admin_mfa_required
+
+            if admin_mfa_required(user):
+                return Response(
+                    {
+                        "code": "mfa_required",
+                        "detail": "Use the AllAuth login endpoint to complete MFA.",
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
             # if their email is verified
             if user.email_verified:
                 login(request, user)
@@ -332,6 +345,19 @@ class LoginKiosk(APIView):
         if not user.email_verified:
             return Response(
                 {"message": "error.emailNotVerified"}, status=status.HTTP_403_FORBIDDEN
+            )
+
+        # RFID login is a single factor and should not satisfy enforced staff MFA.
+        # We might consider adding a PIN for this usecase?
+        from membermatters.mfa_policy import admin_mfa_required
+
+        if admin_mfa_required(user):
+            return Response(
+                {
+                    "code": "mfa_required",
+                    "detail": "Staff users must use AllAuth MFA login.",
+                },
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         # rfid matches a user so log them in
@@ -1205,6 +1231,17 @@ class VerifyEmail(APIView):
                 user.save(update_fields=["email_verified"])
 
         if is_fresh:
+            from membermatters.mfa_policy import admin_mfa_required
+
+            if admin_mfa_required(user):
+                return Response(
+                    {
+                        "code": "mfa_required",
+                        "detail": "Use the AllAuth login endpoint to complete MFA.",
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
             # Session login runs after the DB commit so a session-store
             # write cannot extend the transaction's row-lock window.
             login(request, user)

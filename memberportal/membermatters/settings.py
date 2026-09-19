@@ -93,6 +93,10 @@ INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
+    "allauth",
+    "allauth.account",
+    "allauth.mfa",
+    "allauth.headless",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
@@ -126,6 +130,8 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
+    "membermatters.mfa_policy.AdminMFAMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "membermatters.middleware.Sentry",
@@ -383,7 +389,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.SessionAuthentication",
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "membermatters.authentication.HybridJWTAuthentication",
     ),
     "DEFAULT_THROTTLE_CLASSES": ("rest_framework.throttling.ScopedRateThrottle",),
     "NUM_PROXIES": int(_num_proxies) if _num_proxies else None,
@@ -436,6 +442,29 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = os.environ.get("MM_MEDIA_LOCATION", "/usr/src/data/media/")
 
 AUTH_USER_MODEL = "profile.User"
+
+# Django-AllAuth is used in headless mode by the Vue SPA. Existing custom
+# registration and password-reset APIs remain the source of truth.
+AUTHENTICATION_BACKENDS = ("allauth.account.auth_backends.AuthenticationBackend",)
+ACCOUNT_ADAPTER = "membermatters.adapters.MemberMattersAccountAdapter"
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_USER_MODEL_EMAIL_FIELD = "email"
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+ACCOUNT_EMAIL_VERIFICATION = "none"
+ACCOUNT_LOGIN_TIMEOUT = 900
+
+HEADLESS_ONLY = True
+HEADLESS_CLIENTS = ("browser", "app")
+HEADLESS_TOKEN_STRATEGY = "allauth.headless.tokens.strategies.jwt.JWTTokenStrategy"
+HEADLESS_JWT_AUTHORIZATION_HEADER_SCHEME = "Bearer"
+
+MFA_SUPPORTED_TYPES = ["totp", "webauthn", "recovery_codes"]
+MFA_PASSKEY_LOGIN_ENABLED = True
+MFA_RECOVERY_CODES_SHOW_ONCE = True
+MFA_TOTP_ISSUER = "MemberMatters"
+MFA_WEBAUTHN_ALLOW_INSECURE_ORIGIN = DEBUG
+MFA_TRUST_ENABLED = False
 
 REQUEST_TIMEOUT = 0.05
 

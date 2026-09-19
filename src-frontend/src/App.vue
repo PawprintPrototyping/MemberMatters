@@ -69,17 +69,31 @@ export default defineComponent({
             Platform.is.capacitor &&
             error.response.data?.messages[0]?.token_class === 'AccessToken'
           ) {
-            this.$axios
-              .post('/api/token/refresh/', {
-                refresh: this.refreshToken,
-              })
+            const refreshAllauth = this.$axios.post(
+              '/_allauth/app/v1/tokens/refresh',
+              { refresh_token: this.refreshToken },
+              { headers: { Accept: 'application/json' } },
+            );
+            refreshAllauth
+              .catch(() =>
+                this.$axios.post('/api/token/refresh/', {
+                  refresh: this.refreshToken,
+                }),
+              )
               .then((response) => {
-                this.setAuth(response.data);
+                const tokenData = response.data.data || response.data;
+                this.setAuth({
+                  access: tokenData.access_token || tokenData.access,
+                  refresh:
+                    tokenData.refresh_token ||
+                    tokenData.refresh ||
+                    this.refreshToken,
+                });
                 this.setLoggedIn(true);
                 return Promise.resolve();
               })
               .catch(() => {
-                // if we fail to refresh, send them back to the login page
+                // if both refresh endpoints fail, send them back to login
                 this.$router.push('/login');
                 return Promise.resolve();
               });

@@ -177,6 +177,17 @@ export default {
     login: 'Login',
     resetPassword: 'Återställ lösenord',
     loginSuccess: 'Inloggning lyckades',
+    mfaCode: 'Autentiseringskod',
+    mfaRequired:
+      'Ange koden från din autentiseringsapp eller använd en lösenordsnyckel.',
+    verifyMfa: 'Verifiera',
+    usePasskey: 'Använd lösenordsnyckel',
+    mfaSetupTitle: 'Skydda ditt konto',
+    mfaSetupDescription:
+      'Skanna QR-koden med en autentiseringsapp och ange sedan den genererade koden.',
+    mfaSetupSecret: 'Installationsnyckel',
+    enableMfa: 'Aktivera MFA',
+    skipMfaSetup: 'Hoppa över tills vidare',
     registerHere: 'Registrera Här',
     notAMember: 'Inte medlem än? ',
     loginToContinue: 'Logga in för att fortsätta',
