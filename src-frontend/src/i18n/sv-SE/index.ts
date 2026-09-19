@@ -880,6 +880,12 @@ export default {
       'Ditt abonnemang kunde inte ändras eftersom dess faktureringskonfiguration är ogiltig.',
     planSwitchOutOfSync:
       'Ditt betalningsalternativ är inte synkroniserat med Stripe. Kontakta oss för hjälp.',
+    planSwitchPriceMismatch:
+      'Uppgifterna för betalningsalternativet stämmer inte med Stripe. Kontakta oss för hjälp.',
+    planSwitchRecoveryPending:
+      'Ändringen av betalningsalternativet behandlas fortfarande. Försök igen om en stund eller kontakta oss för hjälp.',
+    planSwitchRecoveryFailed:
+      'Ändringen av betalningsalternativet behöver hanteras av en administratör. Kontakta oss för hjälp.',
     planSwitchUnconfirmed:
       'Stripe bekräftade inte ändringen av betalningsalternativ. Kontakta oss för hjälp.',
   },

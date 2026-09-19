@@ -903,6 +903,12 @@ export default {
       'Your subscription could not be changed because its billing configuration is invalid.',
     planSwitchOutOfSync:
       'Your payment plan is out of sync with Stripe. Please contact us for help.',
+    planSwitchPriceMismatch:
+      'The payment plan details do not match Stripe. Please contact us for help.',
+    planSwitchRecoveryPending:
+      'Your payment plan change is still being processed. Please try again shortly or contact us for help.',
+    planSwitchRecoveryFailed:
+      'Your payment plan change needs administrator attention. Please contact us for help.',
     planSwitchUnconfirmed:
       'Stripe did not confirm the payment plan change. Please contact us for help.',
   },
