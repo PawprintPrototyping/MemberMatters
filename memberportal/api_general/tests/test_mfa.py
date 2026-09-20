@@ -118,8 +118,25 @@ class AllAuthConfigurationTests(MFAUserTestMixin, TestCase):
         self.assertTrue(body["meta"]["is_authenticated"])
         self.assertEqual(body["data"]["user"]["id"], user.pk)
 
-    @override_settings(MFA_TOTP_TOLERANCE=1)
-    def test_browser_login_stages_and_completes_totp(self):
+    def test_legacy_model_backend_sessions_remain_authenticated(self):
+        user = self.make_profile("legacy-session@example.test")
+        client = APIClient()
+        client.force_login(user, backend="django.contrib.auth.backends.ModelBackend")
+
+        response = client.get("/api/loggedin/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_legacy_staff_session_still_requires_mfa_when_enforced(self):
+        user = self.make_profile("legacy-staff-session@example.test", staff=True)
+        client = APIClient()
+        client.force_login(user, backend="django.contrib.auth.backends.ModelBackend")
+
+        with override_config(ENFORCE_MFA_FOR_ADMIN_USERS=True):
+            response = client.get("/api/profile/")
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.json()["code"], "mfa_required")
         user = self.make_profile("allauth-browser-mfa@example.test")
         secret = self.add_totp(user)
         client = APIClient()

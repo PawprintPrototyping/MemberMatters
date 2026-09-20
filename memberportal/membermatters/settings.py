@@ -445,7 +445,11 @@ AUTH_USER_MODEL = "profile.User"
 
 # Django-AllAuth is used in headless mode by the Vue SPA. Existing custom
 # registration and password-reset APIs remain the source of truth.
-AUTHENTICATION_BACKENDS = ("allauth.account.auth_backends.AuthenticationBackend",)
+AUTHENTICATION_BACKENDS = (
+    "allauth.account.auth_backends.AuthenticationBackend",
+    # Keep loading sessions created before AllAuth
+    "django.contrib.auth.backends.ModelBackend",
+)
 ACCOUNT_ADAPTER = "membermatters.adapters.MemberMattersAccountAdapter"
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_USER_MODEL_EMAIL_FIELD = "email"
