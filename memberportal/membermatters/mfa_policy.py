@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.auth.signals import user_logged_out
 from django.http import HttpRequest, JsonResponse
 from django.utils.deprecation import MiddlewareMixin
-from django.dispatch import receiver
 from django.utils.module_loading import import_string
+from django.dispatch import receiver
+
+from rest_framework.exceptions import AuthenticationFailed
 
 from allauth.mfa.signals import authenticator_used
 from constance import config
@@ -27,6 +30,37 @@ def admin_mfa_required(user) -> bool:
         and getattr(user, "is_staff", False)
         and config.ENFORCE_MFA_FOR_ADMIN_USERS
     )
+
+
+def _capture_allauth_app_session(request: HttpRequest) -> None:
+    session_key = request.headers.get("X-Session-Token")
+    user = None
+
+    if not session_key:
+        try:
+            from allauth.headless.contrib.rest_framework.authentication import (
+                JWTTokenAuthentication,
+            )
+
+            authentication = JWTTokenAuthentication().authenticate(request)
+            if authentication:
+                user, token = authentication
+                if isinstance(token, dict):
+                    session_key = token.get("sid")
+        except AuthenticationFailed:
+            return
+
+    if not session_key:
+        return
+
+    setattr(request, "_membermatters_mfa_session_key", session_key)
+    session_store = import_string(settings.SESSION_ENGINE + ".SessionStore")
+    token_session = session_store(session_key=session_key)
+    if user is None:
+        user_id = token_session.get("_auth_user_id")
+        if user_id is not None:
+            user = get_user_model().objects.filter(pk=user_id).first()
+    setattr(request, "_membermatters_mfa_user", user)
 
 
 def _session_has_mfa_marker(session, user) -> bool:
@@ -78,8 +112,9 @@ class AdminMFAMiddleware(MiddlewareMixin):
             return None
 
         if request.path.startswith(ALLAUTH_PREFIX):
-            # AllAuth needs these endpoints to remain available for first-time
-            # enrollment when a staff member has no authenticator yet.
+            # Capture the app session before AllAuth temporarily swaps and
+            # restores request.session inside its headless decorator.
+            _capture_allauth_app_session(request)
             return None
 
         if request.path == MFA_LOGIN_PATH and request.method == "POST":
@@ -125,10 +160,20 @@ class AdminMFAMiddleware(MiddlewareMixin):
                 or request.path.endswith("/account/authenticators/webauthn")
             )
             and response.status_code < 300
-            and getattr(request.user, "is_authenticated", False)
         ):
-            # Enrollment verifies the TOTP code or WebAuthn assertion. Treat
-            # that successful ceremony as MFA completion for this session.
-            request.session[MFA_SESSION_KEY] = str(request.user.pk)
-            request.session.modified = True
+            # Enrollment verifies the TOTP code or WebAuthn assertion. For app
+            # clients, write to the token-backed session captured in
+            # process_view; AllAuth has restored the original request session
+            # by the time this response hook runs.
+            user = getattr(request, "_membermatters_mfa_user", None)
+            session_key = getattr(request, "_membermatters_mfa_session_key", None)
+            if session_key:
+                session_store = import_string(settings.SESSION_ENGINE + ".SessionStore")
+                session = session_store(session_key=session_key)
+                if user is not None:
+                    session[MFA_SESSION_KEY] = str(user.pk)
+                    session.save()
+            elif getattr(request.user, "is_authenticated", False):
+                request.session[MFA_SESSION_KEY] = str(request.user.pk)
+                request.session.modified = True
         return response

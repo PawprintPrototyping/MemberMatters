@@ -8,6 +8,7 @@ from django.contrib.auth import user_logged_out
 from django.http import HttpResponse
 from django.test import RequestFactory, TestCase
 from django.urls import resolve
+from django.utils.module_loading import import_string
 from django.contrib.sessions.middleware import SessionMiddleware
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -72,8 +73,8 @@ class AllAuthConfigurationTests(TestCase):
 
 
 class MFAAuthenticationPolicyTests(MFAUserTestMixin, TestCase):
-    def request_with_session(self, path, method="get"):
-        request = getattr(RequestFactory(), method)(path)
+    def request_with_session(self, path, method="get", **kwargs):
+        request = getattr(RequestFactory(), method)(path, **kwargs)
         SessionMiddleware(lambda _: HttpResponse()).process_request(request)
         request.session.save()
         return request
@@ -167,7 +168,27 @@ class MFAAuthenticationPolicyTests(MFAUserTestMixin, TestCase):
         request.auth = {"sid": token_session.session_key}
         self.assertTrue(request_has_verified_mfa(request, user))
 
-    def test_successful_enrollment_marks_the_current_session(self):
+    def test_app_enrollment_marks_the_token_backed_session(self):
+        user = self.make_user("mfa-app-enrollment@example.test")
+        token_request = self.request_with_session("/api/profile/")
+        token_session = token_request.session
+        token_session["_auth_user_id"] = str(user.pk)
+        token_session.save()
+
+        request = self.request_with_session(
+            "/_allauth/app/v1/account/authenticators/totp",
+            method="post",
+            HTTP_X_SESSION_TOKEN=token_session.session_key,
+        )
+        middleware = AdminMFAMiddleware(lambda _: HttpResponse())
+        middleware.process_view(request, None, (), {})
+        middleware.process_response(request, HttpResponse(status=200))
+
+        session_store = import_string(settings.SESSION_ENGINE + ".SessionStore")
+        saved_session = session_store(session_key=token_session.session_key)
+        self.assertEqual(saved_session[MFA_SESSION_KEY], str(user.pk))
+        self.assertNotIn(MFA_SESSION_KEY, request.session)
+
         user = self.make_user("mfa-enrollment@example.test")
         middleware = AdminMFAMiddleware(lambda _: HttpResponse())
 
