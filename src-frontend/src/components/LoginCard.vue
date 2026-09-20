@@ -734,6 +734,7 @@ export default defineComponent({
           this.allauthPath('/account/authenticators/webauthn'),
           {
             name: 'MemberMatters passkey',
+            passwordless: true,
             credential: serializeWebAuthnCreationCredential(
               credential as PublicKeyCredential,
             ),
