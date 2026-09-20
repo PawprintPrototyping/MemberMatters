@@ -540,7 +540,7 @@ export default defineComponent({
       this.loginError = false;
 
       if (this.discourseSsoData) {
-        this.login();
+        this.completeDiscourseSso();
         return;
       }
 
@@ -577,6 +577,17 @@ export default defineComponent({
         this.login();
       }
     },
+    async completeDiscourseSso() {
+      try {
+        const response = await this.$axios.post('/api/login/', {
+          sso: this.discourseSsoData,
+        });
+        this.loginComplete = true;
+        window.location = response.data.redirect;
+      } catch {
+        this.loginError = true;
+      }
+    },
     /**
      * This sends the login API request to log the user in.
      */
@@ -597,7 +608,13 @@ export default defineComponent({
             window.location = response.data.redirect;
           })
           .catch((error) => {
-            if (error.response?.status === 401) {
+            if (
+              error.response?.status === 403 &&
+              error.response.data?.code === 'mfa_required'
+            ) {
+              this.unverifiedEmail = false;
+              this.loginWithAllauth();
+            } else if (error.response?.status === 401) {
               this.loginFailed = true;
               this.unverifiedEmail = false;
             } else if (error.response?.status === 403) {

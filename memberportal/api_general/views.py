@@ -207,7 +207,26 @@ class Login(APIView):
                 # if sso is disabled then exit
                 return Response(status=status.HTTP_400_BAD_REQUEST)
 
+        from membermatters.mfa_policy import (
+            admin_mfa_required,
+            request_has_verified_mfa,
+        )
+
         if request.user.is_authenticated:
+            if admin_mfa_required(request.user) and not request_has_verified_mfa(
+                request, request.user
+            ):
+                # Discard a password-only session so the frontend can restart
+                # through AllAuth and complete its MFA stage.
+                logout(request)
+                return Response(
+                    {
+                        "code": "mfa_required",
+                        "detail": "Use the AllAuth login endpoint to complete MFA.",
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
             if discourse_login:
                 payload = {
                     "nonce": discourse_nonce,
@@ -238,10 +257,6 @@ class Login(APIView):
 
         # correct login details
         if user is not None:
-            # Enforced staff users must use AllAuth so its MFA stage cannot be
-            # bypassed by the legacy custom login endpoint.
-            from membermatters.mfa_policy import admin_mfa_required
-
             if admin_mfa_required(user):
                 return Response(
                     {

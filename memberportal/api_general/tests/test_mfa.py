@@ -1,3 +1,8 @@
+import base64
+import hashlib
+import hmac
+from urllib.parse import urlencode
+
 from django.conf import settings
 from django.contrib.auth import user_logged_out
 from django.http import HttpResponse
@@ -14,13 +19,14 @@ from constance.test.unittest import override_config
 
 from membermatters.mfa_policy import (
     ALLAUTH_PREFIX,
+    MFA_LOGIN_PATH,
     MFA_SESSION_KEY,
     MFA_SETUP_ALLOWED_PATHS,
     AdminMFAMiddleware,
     admin_mfa_required,
     request_has_verified_mfa,
 )
-from profile.models import User
+from profile.models import Profile, User
 
 
 class MFAUserTestMixin:
@@ -104,12 +110,16 @@ class MFAAuthenticationPolicyTests(MFAUserTestMixin, TestCase):
 
         with override_config(ENFORCE_MFA_FOR_ADMIN_USERS=True):
             for path in MFA_SETUP_ALLOWED_PATHS | {
-                f"{ALLAUTH_PREFIX}browser/v1/auth/login"
+                f"{ALLAUTH_PREFIX}browser/v1/auth/login",
             }:
                 with self.subTest(path=path):
                     request = self.request_with_session(path)
                     request.user = staff
                     self.assertIsNone(middleware.process_view(request, None, (), {}))
+
+            request = self.request_with_session(MFA_LOGIN_PATH, method="post")
+            request.user = staff
+            self.assertIsNone(middleware.process_view(request, None, (), {}))
 
             request = self.request_with_session("/api/profile/")
             request.user = staff
@@ -177,6 +187,68 @@ class MFAAuthenticationPolicyTests(MFAUserTestMixin, TestCase):
         request.user = user
         middleware.process_response(request, HttpResponse(status=400))
         self.assertNotIn(MFA_SESSION_KEY, request.session)
+
+
+class DiscourseSSOMFAEnforcementTests(MFAUserTestMixin, TestCase):
+    def signed_sso_data(self):
+        secret = "sso-secret"
+        payload = base64.b64encode(
+            urlencode(
+                {
+                    "nonce": "nonce-1",
+                    "return_sso_url": "https://discourse.example.test/session",
+                }
+            ).encode()
+        ).decode()
+        signature = hmac.new(
+            secret.encode(), payload.encode(), digestmod=hashlib.sha256
+        ).hexdigest()
+        return {"sso": payload, "sig": signature}, secret
+
+    def test_authenticated_staff_cannot_issue_sso_handoff_without_mfa(self):
+        user = self.make_user("discourse-staff@example.test", staff=True)
+        Profile.objects.create(
+            user=user,
+            first_name="Discourse",
+            last_name="Staff",
+        )
+        sso_data, secret = self.signed_sso_data()
+        client = APIClient()
+        client.force_login(user)
+
+        with override_config(
+            ENABLE_DISCOURSE_SSO_PROTOCOL=True,
+            DISCOURSE_SSO_PROTOCOL_SECRET_KEY=secret,
+            ENFORCE_MFA_FOR_ADMIN_USERS=True,
+        ):
+            response = client.post("/api/login/", {"sso": sso_data}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.json()["code"], "mfa_required")
+        self.assertNotIn("_auth_user_id", client.session)
+
+    def test_staff_password_sso_login_returns_mfa_code(self):
+        user = self.make_user("discourse-password@example.test", staff=True)
+        sso_data, secret = self.signed_sso_data()
+        client = APIClient()
+
+        with override_config(
+            ENABLE_DISCOURSE_SSO_PROTOCOL=True,
+            DISCOURSE_SSO_PROTOCOL_SECRET_KEY=secret,
+            ENFORCE_MFA_FOR_ADMIN_USERS=True,
+        ):
+            response = client.post(
+                "/api/login/",
+                {
+                    "email": user.email,
+                    "password": "test-password",
+                    "sso": sso_data,
+                },
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.json()["code"], "mfa_required")
 
 
 class LegacyTokenMFAEnforcementTests(MFAUserTestMixin, TestCase):

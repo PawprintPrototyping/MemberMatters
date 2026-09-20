@@ -12,10 +12,10 @@ from constance import config
 
 MFA_SESSION_KEY = "membermatters.mfa_verified_user"
 ALLAUTH_PREFIX = "/_allauth/"
+MFA_LOGIN_PATH = "/api/login/"
 MFA_SETUP_ALLOWED_PATHS = {
     "/api/logout/",
     "/api/config/",
-    "/api/login/",
     "/api/token/obtain/",
     "/api/token/refresh/",
 }
@@ -80,6 +80,11 @@ class AdminMFAMiddleware(MiddlewareMixin):
         if request.path.startswith(ALLAUTH_PREFIX):
             # AllAuth needs these endpoints to remain available for first-time
             # enrollment when a staff member has no authenticator yet.
+            return None
+
+        if request.path == MFA_LOGIN_PATH and request.method == "POST":
+            # The login endpoint must be reachable for first-factor requests;
+            # Login.post enforces MFA for any already-authenticated staff user.
             return None
 
         user = request.user
