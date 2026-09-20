@@ -54,6 +54,8 @@ def _capture_allauth_app_session(request: HttpRequest) -> None:
         return
 
     setattr(request, "_membermatters_mfa_session_key", session_key)
+    if not getattr(request, "auth", None):
+        request.auth = {"sid": session_key}
     session_store = import_string(settings.SESSION_ENGINE + ".SessionStore")
     token_session = session_store(session_key=session_key)
     if user is None:
@@ -61,6 +63,32 @@ def _capture_allauth_app_session(request: HttpRequest) -> None:
         if user_id is not None:
             user = get_user_model().objects.filter(pk=user_id).first()
     setattr(request, "_membermatters_mfa_user", user)
+
+
+def _allauth_path_allowed_for_unverified_staff(path: str, method: str) -> bool:
+    normalized_path = path.rstrip("/")
+    suffix = "/" + normalized_path.split("/v1/", 1)[-1].lstrip("/")
+
+    match suffix:
+        case (
+            "/auth/login"
+            | "/auth/2fa/authenticate"
+            | "/auth/webauthn/login"
+            | "/auth/webauthn/authenticate"
+        ):
+            return True
+        case "/config" if method == "GET":
+            return True
+        case "/auth/session" if method == "DELETE":
+            return True
+        case "/account/authenticators" if method == "GET":
+            return True
+        case (
+            "/account/authenticators/totp" | "/account/authenticators/webauthn"
+        ) if method in {"GET", "POST"}:
+            return True
+        case _:
+            return False
 
 
 def _session_has_mfa_marker(session, user) -> bool:
@@ -111,11 +139,11 @@ class AdminMFAMiddleware(MiddlewareMixin):
         if request.method == "OPTIONS":
             return None
 
-        if request.path.startswith(ALLAUTH_PREFIX):
+        is_allauth_path = request.path.startswith(ALLAUTH_PREFIX)
+        if is_allauth_path:
             # Capture the app session before AllAuth temporarily swaps and
             # restores request.session inside its headless decorator.
             _capture_allauth_app_session(request)
-            return None
 
         if request.path == MFA_LOGIN_PATH and request.method == "POST":
             # The login endpoint must be reachable for first-factor requests;
@@ -124,15 +152,20 @@ class AdminMFAMiddleware(MiddlewareMixin):
 
         user = request.user
         if not user.is_authenticated:
-            try:
-                from membermatters.authentication import HybridJWTAuthentication
+            captured_user = getattr(request, "_membermatters_mfa_user", None)
+            if captured_user is not None:
+                user = captured_user
+                request.user = user
+            else:
+                try:
+                    from membermatters.authentication import HybridJWTAuthentication
 
-                authentication = HybridJWTAuthentication().authenticate(request)
-                if authentication:
-                    user, request.auth = authentication
-                    request.user = user
-            except Exception:
-                user = request.user
+                    authentication = HybridJWTAuthentication().authenticate(request)
+                    if authentication:
+                        user, request.auth = authentication
+                        request.user = user
+                except Exception:
+                    user = request.user
 
         if not admin_mfa_required(user):
             return None
@@ -141,6 +174,11 @@ class AdminMFAMiddleware(MiddlewareMixin):
             return None
 
         if request_has_verified_mfa(request, user):
+            return None
+
+        if is_allauth_path and _allauth_path_allowed_for_unverified_staff(
+            request.path, request.method
+        ):
             return None
 
         return JsonResponse(

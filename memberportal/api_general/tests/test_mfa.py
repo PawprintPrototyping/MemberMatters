@@ -1,10 +1,12 @@
 import base64
 import hashlib
 import hmac
+import json
 from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib.auth import user_logged_out
+from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponse
 from django.test import RequestFactory, TestCase
 from django.urls import resolve
@@ -140,7 +142,26 @@ class MFAAuthenticationPolicyTests(MFAUserTestMixin, TestCase):
             request.user = member
             self.assertIsNone(middleware.process_view(request, None, (), {}))
 
-    def test_mfa_signal_marks_and_logout_clears_session(self):
+    def test_unverified_staff_cannot_use_allauth_account_mutations(self):
+        staff = self.make_user("middleware-account-mutation@example.test", staff=True)
+        middleware = AdminMFAMiddleware(lambda _: HttpResponse())
+        blocked_requests = (
+            ("post", "/_allauth/browser/v1/account/password/change"),
+            ("delete", "/_allauth/browser/v1/account/authenticators/webauthn"),
+            ("post", "/_allauth/browser/v1/account/authenticators/recovery-codes"),
+        )
+
+        with override_config(ENFORCE_MFA_FOR_ADMIN_USERS=True):
+            for method, path in blocked_requests:
+                with self.subTest(method=method, path=path):
+                    request = self.request_with_session(path, method=method)
+                    request.user = staff
+                    response = middleware.process_view(request, None, (), {})
+                    self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+                    self.assertEqual(
+                        json.loads(response.content)["code"], "mfa_required"
+                    )
+
         user = self.make_user("mfa-signals@example.test")
         request = self.request_with_session("/api/profile/")
 
@@ -180,6 +201,7 @@ class MFAAuthenticationPolicyTests(MFAUserTestMixin, TestCase):
             method="post",
             HTTP_X_SESSION_TOKEN=token_session.session_key,
         )
+        request.user = AnonymousUser()
         middleware = AdminMFAMiddleware(lambda _: HttpResponse())
         middleware.process_view(request, None, (), {})
         middleware.process_response(request, HttpResponse(status=200))
