@@ -10,6 +10,7 @@ from django.dispatch import receiver
 
 from rest_framework.exceptions import AuthenticationFailed
 
+from allauth.headless.tokens.strategies.jwt.internal import session_key_from_sid
 from allauth.mfa.signals import authenticator_used
 from constance import config
 
@@ -107,7 +108,13 @@ def _session_for_token(request: HttpRequest):
         if not session_id:
             continue
         session_store = import_string(settings.SESSION_ENGINE + ".SessionStore")
-        return session_store(session_key=session_id)
+        raw_session = session_store(session_key=session_id)
+        if raw_session.exists(session_id):
+            return raw_session
+
+        decoded_session_id = session_key_from_sid(session_id)
+        if decoded_session_id:
+            return session_store(session_key=decoded_session_id)
     return None
 
 

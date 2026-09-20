@@ -2,13 +2,14 @@ import base64
 import hashlib
 import hmac
 import json
+import time
 from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib.auth import user_logged_out
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponse
-from django.test import RequestFactory, TestCase
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import resolve
 from django.utils.module_loading import import_string
 from django.contrib.sessions.middleware import SessionMiddleware
@@ -16,8 +17,17 @@ from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from allauth.mfa import app_settings as mfa_settings
 from allauth.mfa.models import Authenticator
 from allauth.mfa.signals import authenticator_used
+from allauth.mfa.totp.internal.auth import (
+    TOTP,
+    format_hotp_value,
+    generate_totp_secret,
+    hotp_value,
+    validate_totp_code,
+)
+from allauth.mfa.webauthn.forms import AddWebAuthnForm
 from constance.test.unittest import override_config
 
 from membermatters.mfa_policy import (
@@ -40,8 +50,27 @@ class MFAUserTestMixin:
             user.save(update_fields=["staff"])
         return user
 
+    def make_profile(self, email, staff=False):
+        user = self.make_user(email, staff=staff)
+        Profile.objects.create(
+            user=user,
+            first_name="MFA",
+            last_name="Test",
+            screen_name=f"mfa-{user.pk}",
+        )
+        return user
 
-class AllAuthConfigurationTests(TestCase):
+    def add_totp(self, user):
+        secret = generate_totp_secret()
+        TOTP.activate(user, secret)
+        return secret
+
+    def totp_code(self, secret):
+        counter = int(time.time()) // mfa_settings.TOTP_PERIOD
+        return format_hotp_value(hotp_value(secret, counter))
+
+
+class AllAuthConfigurationTests(MFAUserTestMixin, TestCase):
     def test_headless_mfa_and_passkey_routes_are_available(self):
         self.assertTrue(settings.HEADLESS_ONLY)
         self.assertEqual(settings.HEADLESS_CLIENTS, ("browser", "app"))
@@ -72,6 +101,91 @@ class AllAuthConfigurationTests(TestCase):
         for path, url_name in expected_routes:
             with self.subTest(path=path):
                 self.assertEqual(resolve(path).url_name, url_name)
+
+    def test_browser_login_returns_authenticated_headless_response(self):
+        user = self.make_profile("allauth-browser@example.test")
+        client = APIClient()
+
+        response = client.post(
+            "/_allauth/browser/v1/auth/login",
+            {"email": user.email, "password": "test-password"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        body = response.json()
+        self.assertEqual(body["status"], status.HTTP_200_OK)
+        self.assertTrue(body["meta"]["is_authenticated"])
+        self.assertEqual(body["data"]["user"]["id"], user.pk)
+
+    @override_settings(MFA_TOTP_TOLERANCE=1)
+    def test_browser_login_stages_and_completes_totp(self):
+        user = self.make_profile("allauth-browser-mfa@example.test")
+        secret = self.add_totp(user)
+        client = APIClient()
+
+        pending = client.post(
+            "/_allauth/browser/v1/auth/login",
+            {"email": user.email, "password": "test-password"},
+            format="json",
+        )
+        self.assertEqual(pending.status_code, status.HTTP_401_UNAUTHORIZED)
+        flow = next(
+            flow
+            for flow in pending.json()["data"]["flows"]
+            if flow["id"] == "mfa_authenticate"
+        )
+        self.assertTrue(flow["is_pending"])
+        self.assertIn("totp", flow["types"])
+        code = self.totp_code(secret)
+        self.assertTrue(validate_totp_code(secret, code))
+
+        completed = client.post(
+            "/_allauth/browser/v1/auth/2fa/authenticate",
+            {"code": code},
+            format="json",
+        )
+        self.assertEqual(completed.status_code, status.HTTP_200_OK, completed.json())
+        self.assertTrue(completed.json()["meta"]["is_authenticated"])
+
+    def test_app_login_mfa_token_authenticates_protected_api(self):
+        user = self.make_profile("allauth-app-mfa@example.test", staff=True)
+        secret = self.add_totp(user)
+        client = APIClient()
+
+        with override_config(ENFORCE_MFA_FOR_ADMIN_USERS=True), override_settings(
+            HEADLESS_JWT_ALGORITHM="HS256",
+            MFA_TOTP_TOLERANCE=1,
+        ):
+            pending = client.post(
+                "/_allauth/app/v1/auth/login",
+                {"email": user.email, "password": "test-password"},
+                format="json",
+            )
+            self.assertEqual(pending.status_code, status.HTTP_401_UNAUTHORIZED)
+            session_token = pending.json()["meta"]["session_token"]
+            code = self.totp_code(secret)
+
+            completed = client.post(
+                "/_allauth/app/v1/auth/2fa/authenticate",
+                {"code": code},
+                format="json",
+                HTTP_X_SESSION_TOKEN=session_token,
+            )
+            self.assertEqual(completed.status_code, status.HTTP_200_OK)
+            access_token = completed.json()["meta"]["access_token"]
+
+            profile = client.get(
+                "/api/profile/",
+                HTTP_AUTHORIZATION=f"Bearer {access_token}",
+            )
+
+        self.assertEqual(profile.status_code, status.HTTP_200_OK)
+        self.assertEqual(profile.json()["id"], user.pk)
+
+    def test_passwordless_webauthn_contract_is_enabled(self):
+        self.assertIn("passwordless", AddWebAuthnForm.base_fields)
+        self.assertTrue(settings.MFA_PASSKEY_LOGIN_ENABLED)
 
 
 class MFAAuthenticationPolicyTests(MFAUserTestMixin, TestCase):
@@ -292,6 +406,26 @@ class DiscourseSSOMFAEnforcementTests(MFAUserTestMixin, TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(response.json()["code"], "mfa_required")
+
+    def test_staff_with_mfa_marker_can_issue_sso_handoff(self):
+        user = self.make_profile("discourse-positive@example.test", staff=True)
+        sso_data, secret = self.signed_sso_data()
+        client = APIClient()
+        client.force_login(user)
+        session = client.session
+        session[MFA_SESSION_KEY] = str(user.pk)
+        session.save()
+
+        with override_config(
+            ENABLE_DISCOURSE_SSO_PROTOCOL=True,
+            DISCOURSE_SSO_PROTOCOL_SECRET_KEY=secret,
+            ENFORCE_MFA_FOR_ADMIN_USERS=True,
+        ):
+            response = client.post("/api/login/", {"sso": sso_data}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("sso=", response.json()["redirect"])
+        self.assertIn("sig=", response.json()["redirect"])
 
 
 class LegacyTokenMFAEnforcementTests(MFAUserTestMixin, TestCase):
