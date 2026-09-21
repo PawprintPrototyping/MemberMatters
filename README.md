@@ -1,8 +1,8 @@
-[![Coverage Status](https://coveralls.io/repos/github/PawprintPrototyping/MemberMatters/badge.svg?branch=rechner/induction-requirements-rework-clean)](https://coveralls.io/github/PawprintPrototyping/MemberMatters?branch=rechner/induction-requirements-rework-clean)
+[![Coverage Status](https://coveralls.io/repos/github/PawprintPrototyping/MemberMatters/badge.svg)](https://coveralls.io/github/PawprintPrototyping/MemberMatters?branch=rechner/induction-requirements-rework-clean)
 ![Dependabot Active](https://img.shields.io/badge/dependabot-active-brightgreen?style=flat-square&logo=dependabot)
 [![Build Docker Image (Dev Branch)](https://github.com/membermatters/MemberMatters/actions/workflows/build_docker.dev.yml/badge.svg)](https://github.com/membermatters/MemberMatters/actions/workflows/build_docker.dev.yml)
 
-***This is the [Pawprint Prototyping](https://pawprintprototyping.org) fork, based on the [Makers of Swedens](http://makersofsweden.se) fork of [MemberMatters](https://github.com/membermatters/MemberMatters), created to handle community updates and maintenance.***
+***This is the [Pawprint Prototyping](https://pawprintprototyping.org) fork, based on the [Makers of Swedens](http://makersofsweden.se) [fork](https://github.com/MakersOfSweden/MemberMatters) of [MemberMatters](https://github.com/membermatters/MemberMatters), created to handle community updates and maintenance.***
 
 It also includes a number of additional features, notably:
 * Support for SMTP server configuration (in addition to Postmark);
@@ -11,6 +11,7 @@ It also includes a number of additional features, notably:
 * More control over Profile field requirements;
 * Ongoing dependency updates;
 
+A detailed summary of changes specific to this fork is maintained in [changes-summary-in-fork.md](changes-summary-in-fork.md).
 Docker images are published to [GHCR](https://github.com/PawprintPrototyping/MemberMatters/pkgs/container/membermatters).
 
 # MemberMatters
