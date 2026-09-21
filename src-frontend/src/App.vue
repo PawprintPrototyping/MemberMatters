@@ -57,6 +57,12 @@ export default defineComponent({
     this.$axios.interceptors.response.use(
       (response) => response,
       (error) => {
+        const isAllauthRequest =
+          error.response?.config?.url?.includes('/_allauth/');
+        if (isAllauthRequest) {
+          return Promise.reject(error);
+        }
+
         // If we get a 401 and it's not the loggedin check endpoint, or reset password/login page, redirect user to login screen
         if (
           error.response &&

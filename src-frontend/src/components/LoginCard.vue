@@ -167,6 +167,12 @@
           <q-banner v-if="loginError" class="bg-negative text-white q-mt-md">
             {{ $t('error.requestFailed') }}
           </q-banner>
+          <q-input
+            v-model="passkeyName"
+            filled
+            :label="$t('mfaSettings.passkeyName')"
+            :hint="$t('mfaSettings.passkeyNameHint')"
+          />
           <div class="row q-mt-md">
             <q-space />
             <q-btn
@@ -180,6 +186,7 @@
               flat
               color="primary"
               :loading="buttonLoading"
+              :disable="!passkeyName.trim()"
               @click="addPasskey"
             />
             <q-btn
@@ -360,9 +367,12 @@ type WebAuthnRequestOptionsJSON = {
 };
 
 function parseWebAuthnRequestOptions(
-  options: WebAuthnRequestOptionsJSON,
+  options: WebAuthnRequestOptionsJSON & {
+    publicKey?: WebAuthnRequestOptionsJSON;
+  },
 ): PublicKeyCredentialRequestOptions {
-  const parsed = { ...options };
+  const publicKey = options.publicKey || options;
+  const parsed = { ...publicKey };
   parsed.challenge = decodeBase64Url(parsed.challenge);
   const credentials = parsed.allowCredentials || parsed.allow_credentials;
   if (credentials) {
@@ -399,12 +409,14 @@ function serializeWebAuthnCredential(
 
 function parseWebAuthnCreationOptions(
   options: WebAuthnRequestOptionsJSON & {
+    publicKey?: WebAuthnRequestOptionsJSON;
     user: { id: string; [key: string]: unknown };
     excludeCredentials?: WebAuthnCredentialDescriptorJSON[];
     exclude_credentials?: WebAuthnCredentialDescriptorJSON[];
   },
 ): PublicKeyCredentialCreationOptions {
-  const parsed = { ...options };
+  const publicKey = options.publicKey || options;
+  const parsed = { ...publicKey };
   parsed.challenge = decodeBase64Url(parsed.challenge);
   parsed.user = {
     ...parsed.user,
@@ -464,6 +476,7 @@ export default defineComponent({
       mfaTypes: [] as string[],
       mfaSetupRequired: false,
       mfaSetupCode: '',
+      passkeyName: '',
       totpSecret: '',
       totpQrCode: '',
       allauthSessionToken: '',
@@ -733,7 +746,7 @@ export default defineComponent({
         await this.$axios.post(
           this.allauthPath('/account/authenticators/webauthn'),
           {
-            name: 'MemberMatters passkey',
+            name: this.passkeyName.trim(),
             passwordless: true,
             credential: serializeWebAuthnCreationCredential(
               credential as PublicKeyCredential,
@@ -741,6 +754,7 @@ export default defineComponent({
           },
           { headers: this.allauthHeaders() },
         );
+        this.passkeyName = '';
         this.mfaSetupRequired = false;
         this.finishAllauthLogin();
       } catch {

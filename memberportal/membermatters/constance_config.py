@@ -22,7 +22,8 @@ CONSTANCE_CONFIG = {
     ),
     "ENFORCE_MFA_FOR_ADMIN_USERS": (
         False,
-        "Require completed MFA for all staff users before allowing portal or Django admin access.",
+        "Require completed MFA for all staff users before allowing portal or Django admin access.  "
+        "IMPORTANT: Make sure MFA is configured for your user before enabling this or you will be locked out!",
     ),
     # Email config
     "EMAIL_SYSADMIN": (
