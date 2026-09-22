@@ -405,21 +405,26 @@ class InductionProviderState(models.Model):
         ]
 
 
+class ProfileState(models.TextChoices):
+    NOOB = "noob", "Noob"
+    ACTIVE = "active", "Active"
+    INACTIVE = "inactive", "Inactive"
+    ACCOUNT_ONLY = "accountonly", "Account Only"
+
+
+class SubscriptionState(models.TextChoices):
+    INACTIVE = "inactive", "Inactive"
+    ACTIVE = "active", "Active"
+    CANCELLING = "cancelling", "Cancelling"
+    PENDING = "pending", "Pending"
+
+
+class BillingMethod(models.TextChoices):
+    CREDIT = "credit", "Credit"
+    INVOICE = "invoice", "Invoice"
+
+
 class Profile(ExportModelOperationsMixin("profile"), models.Model):
-    STATES = (
-        ("noob", "Needs Induction"),
-        ("active", "Active"),
-        ("inactive", "Inactive"),
-        ("accountonly", "Account only"),
-    )
-
-    SUBSCRIPTION_STATES = (
-        ("inactive", "Inactive"),
-        ("active", "Active"),
-        ("cancelling", "Cancelling"),
-        ("pending", "Pending"),
-    )
-
     class Meta:
         permissions = [
             ("change_staff", "Can change if the user is a staff member or not"),
@@ -459,7 +464,7 @@ class Profile(ExportModelOperationsMixin("profile"), models.Model):
         message="Phone number must be in E.164 format, e.g. +61417123456.",
     )
     phone = models.CharField(validators=[phone_regex], max_length=16, blank=True)
-    state = models.CharField(max_length=11, default="noob", choices=STATES)
+    state = models.CharField(max_length=11, default="noob", choices=ProfileState)
     vehicle_registration_plate = models.CharField(max_length=30, blank=True, null=True)
 
     membership_plan = models.ForeignKey(
@@ -500,7 +505,7 @@ class Profile(ExportModelOperationsMixin("profile"), models.Model):
         max_length=100, blank=True, null=True, default=""
     )
     subscription_status = models.CharField(
-        max_length=10, default="inactive", choices=SUBSCRIPTION_STATES
+        max_length=10, default="inactive", choices=SubscriptionState
     )
     subscription_first_created = models.DateTimeField(
         default=None, blank=True, null=True, editable=False

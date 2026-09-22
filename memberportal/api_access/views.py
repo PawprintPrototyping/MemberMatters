@@ -12,6 +12,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from constance import config
 
+API_DISABLED_MESSAGE = "This API is disabled in the config."
+
 
 class AccessSystemStatus(APIView):
     """
@@ -21,7 +23,7 @@ class AccessSystemStatus(APIView):
     permission_classes = (HasExternalAccessControlAPIKey | permissions.IsAdminUser,)
 
     def get(self, request):
-        statusObject = {
+        status_object = {
             "doors": [],
             "interlocks": [],
             "memberbucksDevices": [],
@@ -58,7 +60,7 @@ class AccessSystemStatus(APIView):
             offline = door.get_unavailable()
             update_count(offline, door.locked_out)
 
-            statusObject["doors"].append(
+            status_object["doors"].append(
                 {
                     "id": door.id,
                     "name": door.name,
@@ -78,7 +80,7 @@ class AccessSystemStatus(APIView):
             offline = interlock.get_unavailable()
             update_count(offline, interlock.locked_out)
 
-            statusObject["interlocks"].append(
+            status_object["interlocks"].append(
                 {
                     "id": interlock.id,
                     "name": interlock.name,
@@ -94,20 +96,20 @@ class AccessSystemStatus(APIView):
         report_count("interlock")
         reset_count()
 
-        for memberbucksDevice in MemberbucksDevice.objects.all():
-            offline = memberbucksDevice.get_unavailable()
-            update_count(offline, memberbucksDevice.locked_out)
+        for memberbucks_device in MemberbucksDevice.objects.all():
+            offline = memberbucks_device.get_unavailable()
+            update_count(offline, memberbucks_device.locked_out)
 
-            statusObject["memberbucksDevices"].append(
+            status_object["memberbucksDevices"].append(
                 {
-                    "id": memberbucksDevice.id,
-                    "name": memberbucksDevice.name,
-                    "lastSeen": memberbucksDevice.last_seen,
-                    "lockedOut": memberbucksDevice.locked_out,
+                    "id": memberbucks_device.id,
+                    "name": memberbucks_device.name,
+                    "lastSeen": memberbucks_device.last_seen,
+                    "lockedOut": memberbucks_device.locked_out,
                     "offline": offline,
                 }
             )
-            if offline and memberbucksDevice.report_online_status:
+            if offline and memberbucks_device.report_online_status:
                 a_device_is_offline = True
 
         # report spacebucksDevices metrics
@@ -115,9 +117,9 @@ class AccessSystemStatus(APIView):
         reset_count()
 
         if error_if_offline and a_device_is_offline:
-            return Response(statusObject, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            return Response(status_object, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
-        return Response(statusObject)
+        return Response(status_object)
 
 
 class UserAccessPermissions(APIView):
@@ -260,7 +262,7 @@ class BumpDoor(APIView):
             return Response({"success": bumped})
         else:
             return Response(
-                {"success": False, "error": "This API is disabled in the config."},
+                {"success": False, "error": API_DISABLED_MESSAGE},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -286,7 +288,7 @@ class LockDevice(APIView):
             return Response({"success": locked})
         else:
             return Response(
-                {"success": False, "error": "This API is disabled in the config."},
+                {"success": False, "error": API_DISABLED_MESSAGE},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -312,6 +314,6 @@ class UnlockDevice(APIView):
             return Response({"success": unlocked})
         else:
             return Response(
-                {"success": False, "error": "This API is disabled in the config."},
+                {"success": False, "error": API_DISABLED_MESSAGE},
                 status=status.HTTP_403_FORBIDDEN,
             )
