@@ -1,5 +1,12 @@
 from membermatters.celeryapp import app
-from api_metrics.metrics import *
+from api_metrics.metrics import (
+    calculate_member_count,
+    calculate_member_count_6_months,
+    calculate_member_count_12_months,
+    calculate_subscription_count,
+    calculate_memberbucks_balance,
+    calculate_memberbucks_transactions,
+)
 
 import requests
 from constance import config
@@ -54,5 +61,5 @@ def calculate_metrics():
             timeout=30,
         )
 
-    except Exception as e:
-        logger.error(f"Failed to update Prometheus metrics: {e}")
+    except Exception:
+        logger.exception("Failed to update Prometheus metrics")

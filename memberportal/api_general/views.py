@@ -13,7 +13,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction, IntegrityError
 from django.utils import timezone
 import datetime
-from profile.models import User, Profile, queue_listmonk_member_sync
+from profile.models import User, Profile, ProfileState, queue_listmonk_member_sync
 from profile.phone import to_e164
 
 from rest_framework import status, permissions, generics, serializers
@@ -32,6 +32,31 @@ import hmac
 import hashlib
 
 logger = logging.getLogger("general")
+
+ERROR_ACCOUNT_ALREADY_EXISTS = "error.accountAlreadyExists"
+ERROR_SCREEN_NAME_ALREADY_EXISTS = "error.screenNameAlreadyExists"
+
+ERROR_PASSWORD_INVALID = "error.passwordInvalid"
+ERROR_PASSWORD_TOO_SHORT = "error.passwordTooShort"
+ERROR_PASSWORD_TOO_LONG = "error.passwordTooLong"
+ERROR_PASSWORD_TOO_COMMON = "error.passwordTooCommon"
+ERROR_PASSWORD_TOO_SIMILAR = "error.passwordTooSimilar"
+ERROR_PASSWORD_ENTIRELY_NUMERIC = "error.passwordEntirelyNumeric"
+ERROR_PASSWORD_COMPROMISED = "error.passwordCompromised"
+ERROR_FIELD_REQUIRED = "error.fieldRequired"
+ERROR_EMAIL_TOO_LONG = "error.emailTooLong"
+ERROR_FIRST_NAME_TOO_LONG = "error.firstNameTooLong"
+ERROR_LAST_NAME_TOO_LONG = "error.lastNameTooLong"
+ERROR_SCREEN_NAME_REQUIRED = "error.screenNameRequired"
+ERROR_SCREEN_NAME_TOO_LONG = "error.screenNameTooLong"
+ERROR_MOBILE_TOO_LONG = "error.mobileTooLong"
+ERROR_VEHICLE_PLATE_TOO_LONG = "error.vehiclePlateTooLong"
+ERROR_REGISTRATION_CLOSED = "error.registrationClosed"
+ERROR_EMAIL_NOT_VERIFIED = "error.emailNotVerified"
+ERROR_EMAIL_VERIFICATION_FAILED = "error.emailVerificationFailed"
+ERROR_EMAIL_VERIFICATION_EXPIRED = "error.emailVerificationExpired"
+VALIDATION_INVALID_EMAIL = "validation.invalidEmail"
+VALIDATION_INVALID_PHONE = "validation.invalidPhone"
 
 
 def _parse_terms_acceptance_cards():
@@ -112,7 +137,7 @@ class GetConfig(APIView):
 
         try:
             homepage_cards = json.loads(config.HOME_PAGE_CARDS)
-        except:
+        except json.JSONDecodeError:
             homepage_cards = [
                 {
                     "title": "Error loading configuration",
@@ -125,7 +150,7 @@ class GetConfig(APIView):
 
         try:
             webcam_links = json.loads(config.WEBCAM_PAGE_URLS)
-        except:
+        except json.JSONDecodeError:
             webcam_links = [
                 ["Error Loading Webcam Configuration", ""],
             ]
@@ -359,7 +384,7 @@ class LoginKiosk(APIView):
 
         if not user.email_verified:
             return Response(
-                {"message": "error.emailNotVerified"}, status=status.HTTP_403_FORBIDDEN
+                {"message": ERROR_EMAIL_NOT_VERIFIED}, status=status.HTTP_403_FORBIDDEN
             )
 
         # RFID login is a single factor and should not satisfy enforced staff MFA.
@@ -545,7 +570,7 @@ class ProfileDetail(generics.GenericAPIView):
                 "membershipTier": (
                     p.membership_plan.member_tier.get_object()
                     if p.membership_plan
-                    else None if p.membership_plan else None
+                    else None
                 ),
                 "subscriptionState": p.subscription_status,
                 "billingMethod": p.billing_method,
@@ -559,8 +584,8 @@ class ProfileDetail(generics.GenericAPIView):
                 # assuming here that the zeroth party will always be the member
                 for docs in submission["submitters"][0]["documents"]:
                     response["memberdocsLink"].append(docs["url"])
-            except:
-                pass
+            except KeyError as e:
+                capture_exception(e)
 
         # Induction links and banner state now derive from independent local
         # provider checks. Profile reads never query external providers or
@@ -600,7 +625,7 @@ class ProfileDetail(generics.GenericAPIView):
                 .exists()
             ):
                 return Response(
-                    {"message": "error.accountAlreadyExists"},
+                    {"message": ERROR_ACCOUNT_ALREADY_EXISTS},
                     status=status.HTTP_409_CONFLICT,
                 )
 
@@ -612,7 +637,7 @@ class ProfileDetail(generics.GenericAPIView):
             .exists()
         ):
             return Response(
-                {"message": "error.screenNameAlreadyExists"},
+                {"message": ERROR_SCREEN_NAME_ALREADY_EXISTS},
                 status=status.HTTP_409_CONFLICT,
             )
 
@@ -626,7 +651,7 @@ class ProfileDetail(generics.GenericAPIView):
                     phone = to_e164(phone, config.PROFILE_DEFAULT_PHONE_REGION)
                 except ValueError:
                     return Response(
-                        {"message": "validation.invalidPhone"},
+                        {"message": VALIDATION_INVALID_PHONE},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
@@ -655,7 +680,7 @@ class ProfileDetail(generics.GenericAPIView):
                 # stale full-row save. Profile.save() rides `modified`
                 # along automatically.
                 p.save(update_fields=profile_fields)
-                if p.state in ("active", "inactive"):
+                if p.state in (ProfileState.ACTIVE, ProfileState.INACTIVE):
                     queue_listmonk_member_sync(p, p.state)
         except IntegrityError:
             # Race with a concurrent register/update: pre-checks passed
@@ -667,11 +692,11 @@ class ProfileDetail(generics.GenericAPIView):
                 .exists()
             ):
                 return Response(
-                    {"message": "error.accountAlreadyExists"},
+                    {"message": ERROR_ACCOUNT_ALREADY_EXISTS},
                     status=status.HTTP_409_CONFLICT,
                 )
             return Response(
-                {"message": "error.screenNameAlreadyExists"},
+                {"message": ERROR_SCREEN_NAME_ALREADY_EXISTS},
                 status=status.HTTP_409_CONFLICT,
             )
 
@@ -859,15 +884,14 @@ class LoggedIn(APIView):
 
 # Maps Django password-validator error codes (AUTH_PASSWORD_VALIDATORS)
 # to frontend i18n keys; unknown codes fall back to error.passwordInvalid.
-PASSWORD_VALIDATION_ERROR_KEYS = {
-    "password_too_short": "error.passwordTooShort",
-    "password_too_common": "error.passwordTooCommon",
-    "password_entirely_numeric": "error.passwordEntirelyNumeric",
-    "password_too_similar": "error.passwordTooSimilar",
-    "password_compromised": "error.passwordCompromised",
-}
 
-REQUIRE_MOBILE = True  # TODO: migrate to a constance flag
+PASSWORD_VALIDATION_ERROR_KEYS = {
+    "password_too_short": ERROR_PASSWORD_TOO_SHORT,
+    "password_too_common": ERROR_PASSWORD_TOO_COMMON,
+    "password_entirely_numeric": ERROR_PASSWORD_ENTIRELY_NUMERIC,
+    "password_too_similar": ERROR_PASSWORD_TOO_SIMILAR,
+    "password_compromised": ERROR_PASSWORD_COMPROMISED,
+}
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -878,11 +902,11 @@ class RegisterSerializer(serializers.Serializer):
         required=True,
         max_length=255,
         error_messages={
-            "required": "error.fieldRequired",
-            "null": "error.fieldRequired",
-            "blank": "error.fieldRequired",
-            "invalid": "validation.invalidEmail",
-            "max_length": "error.emailTooLong",
+            "required": ERROR_FIELD_REQUIRED,
+            "null": ERROR_FIELD_REQUIRED,
+            "blank": ERROR_FIELD_REQUIRED,
+            "invalid": VALIDATION_INVALID_EMAIL,
+            "max_length": ERROR_EMAIL_TOO_LONG,
         },
     )
     password = serializers.CharField(
@@ -891,11 +915,11 @@ class RegisterSerializer(serializers.Serializer):
         min_length=8,
         max_length=128,
         error_messages={
-            "required": "error.fieldRequired",
-            "null": "error.fieldRequired",
-            "blank": "error.fieldRequired",
-            "min_length": "error.passwordTooShort",
-            "max_length": "error.passwordTooLong",
+            "required": ERROR_FIELD_REQUIRED,
+            "null": ERROR_FIELD_REQUIRED,
+            "blank": ERROR_FIELD_REQUIRED,
+            "min_length": ERROR_PASSWORD_TOO_SHORT,
+            "max_length": ERROR_PASSWORD_TOO_LONG,
         },
     )
     firstName = serializers.CharField(
@@ -903,10 +927,10 @@ class RegisterSerializer(serializers.Serializer):
         max_length=30,
         allow_blank=False,
         error_messages={
-            "required": "error.fieldRequired",
-            "null": "error.fieldRequired",
-            "blank": "error.fieldRequired",
-            "max_length": "error.firstNameTooLong",
+            "required": ERROR_FIELD_REQUIRED,
+            "null": ERROR_FIELD_REQUIRED,
+            "blank": ERROR_FIELD_REQUIRED,
+            "max_length": ERROR_FIRST_NAME_TOO_LONG,
         },
     )
     lastName = serializers.CharField(
@@ -914,10 +938,10 @@ class RegisterSerializer(serializers.Serializer):
         max_length=30,
         allow_blank=False,
         error_messages={
-            "required": "error.fieldRequired",
-            "null": "error.fieldRequired",
-            "blank": "error.fieldRequired",
-            "max_length": "error.lastNameTooLong",
+            "required": ERROR_FIELD_REQUIRED,
+            "null": ERROR_FIELD_REQUIRED,
+            "blank": ERROR_FIELD_REQUIRED,
+            "max_length": ERROR_LAST_NAME_TOO_LONG,
         },
     )
     screenName = serializers.CharField(
@@ -926,7 +950,7 @@ class RegisterSerializer(serializers.Serializer):
         allow_blank=True,
         allow_null=True,
         default=None,
-        error_messages={"max_length": "error.screenNameTooLong"},
+        error_messages={"max_length": ERROR_SCREEN_NAME_TOO_LONG},
     )
     # allow_null: the form posts null for fields it isn't collecting;
     # validate() normalises that to "".
@@ -936,7 +960,7 @@ class RegisterSerializer(serializers.Serializer):
         allow_blank=True,
         allow_null=True,
         default="",
-        error_messages={"max_length": "error.mobileTooLong"},
+        error_messages={"max_length": ERROR_MOBILE_TOO_LONG},
     )
     vehicleRegistrationPlate = serializers.CharField(
         required=False,
@@ -944,7 +968,7 @@ class RegisterSerializer(serializers.Serializer):
         allow_blank=True,
         allow_null=True,
         default="",
-        error_messages={"max_length": "error.vehiclePlateTooLong"},
+        error_messages={"max_length": ERROR_VEHICLE_PLATE_TOO_LONG},
     )
 
     def validate_email(self, value):
@@ -966,8 +990,8 @@ class RegisterSerializer(serializers.Serializer):
             else ""
         )
 
-        if REQUIRE_MOBILE and config.COLLECT_PHONE_NUMBER and not attrs["mobile"]:
-            raise serializers.ValidationError({"mobile": "error.fieldRequired"})
+        if config.COLLECT_PHONE_NUMBER and not attrs["mobile"]:
+            raise serializers.ValidationError({"mobile": ERROR_FIELD_REQUIRED})
 
         # Store the phone number in E.164 format.
         if attrs["mobile"]:
@@ -976,11 +1000,11 @@ class RegisterSerializer(serializers.Serializer):
                     attrs["mobile"], config.PROFILE_DEFAULT_PHONE_REGION
                 )
             except ValueError:
-                raise serializers.ValidationError({"mobile": "validation.invalidPhone"})
+                raise serializers.ValidationError({"mobile": VALIDATION_INVALID_PHONE})
 
         if not attrs.get("screenName") and config.REQUIRE_SCREEN_NAME:
             raise serializers.ValidationError(
-                {"screenName": "error.screenNameRequired"}
+                {"screenName": ERROR_SCREEN_NAME_REQUIRED}
             )
 
         # Run Django's AUTH_PASSWORD_VALIDATORS — min-length is already
@@ -1001,9 +1025,7 @@ class RegisterSerializer(serializers.Serializer):
             # (a pwned + common password trips two validators).
             keys = list(
                 dict.fromkeys(
-                    PASSWORD_VALIDATION_ERROR_KEYS.get(
-                        err.code, "error.passwordInvalid"
-                    )
+                    PASSWORD_VALIDATION_ERROR_KEYS.get(err.code, ERROR_PASSWORD_INVALID)
                     for err in e.error_list
                 )
             )
@@ -1104,7 +1126,7 @@ def _subscribe_to_mailchimp(new_user, profile):
             )
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            logger.error(e)
+            logger.exception(e)
 
     transaction.on_commit(_subscribe)
 
@@ -1127,7 +1149,7 @@ class Register(APIView):
         if not config.ENABLE_REGISTRATION:
             return Response(
                 {
-                    "message": "error.registrationClosed",
+                    "message": ERROR_REGISTRATION_CLOSED,
                     "detail": config.REGISTRATION_DISABLED_MESSAGE,
                 },
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -1149,7 +1171,7 @@ class Register(APIView):
         # the DB (Postgres email column is case-sensitive by default).
         if User.objects.filter(email__iexact=data["email"]).exists():
             return Response(
-                {"message": "error.accountAlreadyExists"},
+                {"message": ERROR_ACCOUNT_ALREADY_EXISTS},
                 status=status.HTTP_409_CONFLICT,
             )
         if (
@@ -1157,7 +1179,7 @@ class Register(APIView):
             and Profile.objects.filter(screen_name__iexact=data["screenName"]).exists()
         ):
             return Response(
-                {"message": "error.screenNameAlreadyExists"},
+                {"message": ERROR_SCREEN_NAME_ALREADY_EXISTS},
                 status=status.HTTP_409_CONFLICT,
             )
 
@@ -1194,11 +1216,11 @@ class Register(APIView):
             # which collision occurred.
             if User.objects.filter(email__iexact=data["email"]).exists():
                 return Response(
-                    {"message": "error.accountAlreadyExists"},
+                    {"message": ERROR_ACCOUNT_ALREADY_EXISTS},
                     status=status.HTTP_409_CONFLICT,
                 )
             return Response(
-                {"message": "error.screenNameAlreadyExists"},
+                {"message": ERROR_SCREEN_NAME_ALREADY_EXISTS},
                 status=status.HTTP_409_CONFLICT,
             )
 
@@ -1219,7 +1241,7 @@ class VerifyEmail(APIView):
             )
         except (EmailVerificationToken.DoesNotExist, ValueError):
             return Response(
-                {"message": "error.emailVerificationFailed"},
+                {"message": ERROR_EMAIL_VERIFICATION_FAILED},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
@@ -1237,7 +1259,7 @@ class VerifyEmail(APIView):
             ).delete()
             if deleted_count == 0:
                 return Response(
-                    {"message": "error.emailVerificationFailed"},
+                    {"message": ERROR_EMAIL_VERIFICATION_FAILED},
                     status=status.HTTP_401_UNAUTHORIZED,
                 )
 
@@ -1267,6 +1289,6 @@ class VerifyEmail(APIView):
         # verification email (see Login.post), so the explicit resend
         # path exists without an unauthenticated amplifier here.
         return Response(
-            {"message": "error.emailVerificationExpired"},
+            {"message": ERROR_EMAIL_VERIFICATION_EXPIRED},
             status=status.HTTP_403_FORBIDDEN,
         )
