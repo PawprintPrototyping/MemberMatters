@@ -1,6 +1,6 @@
 // import Vue from "vue";
-import { i18n } from 'boot/i18n';
-import { api } from 'boot/axios';
+import { i18n } from 'src/services/i18n';
+import { api } from 'src/services/api';
 
 export default {
   namespaced: true,

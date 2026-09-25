@@ -3,6 +3,7 @@
   "version": "3.8.0",
   "description": "The MemberMatters frontend",
   "productName": "MemberMatters",
+  "type": "module",
   "author": "Jaimyn Mayer <github@jaimyn.dev>",
   "private": true,
   "scripts": {
