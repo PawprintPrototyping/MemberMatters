@@ -161,14 +161,14 @@ resolution-markers = [
     "platform_python_implementation == 'PyPy' and sys_platform == 'win32'",
 ]
 dependencies = [
-    { name = "cbor2", marker = "platform_python_implementation == 'PyPy' and sys_platform == 'win32'" },
-    { name = "cffi", marker = "platform_python_implementation == 'PyPy' and sys_platform == 'win32'" },
-    { name = "cryptography", marker = "platform_python_implementation == 'PyPy' and sys_platform == 'win32'" },
-    { name = "hyperlink", marker = "platform_python_implementation == 'PyPy' and sys_platform == 'win32'" },
-    { name = "py-ubjson", marker = "platform_python_implementation == 'PyPy' and sys_platform == 'win32'" },
-    { name = "txaio", marker = "platform_python_implementation == 'PyPy' and sys_platform == 'win32'" },
-    { name = "u-msgpack-python", marker = "platform_python_implementation == 'PyPy' and sys_platform == 'win32'" },
-    { name = "ujson", marker = "platform_python_implementation == 'PyPy' and sys_platform == 'win32'" },
+    { name = "cbor2" },
+    { name = "cffi" },
+    { name = "cryptography" },
+    { name = "hyperlink" },
+    { name = "py-ubjson" },
+    { name = "txaio" },
+    { name = "u-msgpack-python" },
+    { name = "ujson" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/54/d5/9adf0f5b9eb244e58e898e9f3db4b00c09835ef4b6c37d491886e0376b4f/autobahn-25.12.2.tar.gz", hash = "sha256:754c06a54753aeb7e8d10c5cbf03249ad9e2a1a32bca8be02865c6f00628a98c", size = 13893652, upload-time = "2025-12-15T11:13:19.086Z" }
 wheels = [
@@ -183,14 +183,14 @@ resolution-markers = [
     "platform_python_implementation != 'PyPy' or sys_platform != 'win32'",
 ]
 dependencies = [
-    { name = "cbor2", marker = "platform_python_implementation != 'PyPy' or sys_platform != 'win32'" },
-    { name = "cffi", marker = "platform_python_implementation != 'PyPy' or sys_platform != 'win32'" },
-    { name = "cryptography", marker = "platform_python_implementation != 'PyPy' or sys_platform != 'win32'" },
-    { name = "hyperlink", marker = "platform_python_implementation != 'PyPy' or sys_platform != 'win32'" },
+    { name = "cbor2" },
+    { name = "cffi" },
+    { name = "cryptography" },
+    { name = "hyperlink" },
     { name = "msgpack", marker = "platform_python_implementation == 'CPython'" },
-    { name = "txaio", marker = "platform_python_implementation != 'PyPy' or sys_platform != 'win32'" },
-    { name = "u-msgpack-python", marker = "(platform_python_implementation != 'CPython' and platform_python_implementation != 'PyPy') or (platform_python_implementation != 'CPython' and sys_platform != 'win32')" },
-    { name = "ujson", marker = "platform_python_implementation != 'PyPy' or sys_platform != 'win32'" },
+    { name = "txaio" },
+    { name = "u-msgpack-python", marker = "platform_python_implementation != 'CPython'" },
+    { name = "ujson" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/de/73/f109f563c27e048e45d135d81af19e6ca391e24905550b06bd1c9d674c57/autobahn-26.7.1.tar.gz", hash = "sha256:c6949a2c6eb95fb1c218837dbda0a59abbbebafb8b11098551c01a7061dfd245", size = 14056542, upload-time = "2026-07-15T19:14:01.246Z" }
 wheels = [
@@ -1048,7 +1048,7 @@ requires-dist = [
     { name = "humanize", specifier = ">=4.9,<4.17" },
     { name = "ics", specifier = "~=0.7.2" },
     { name = "mailchimp-marketing", git = "https://github.com/mailchimp/mailchimp-marketing-python.git" },
-    { name = "mysqlclient", specifier = "~=2.2.4" },
+    { name = "mysqlclient", specifier = ">=2.2.4,<2.4.0" },
     { name = "nh3", specifier = "~=0.3.5" },
     { name = "phonenumberslite", specifier = "~=9.0.30" },
     { name = "pillow", specifier = ">=12,<13" },
@@ -1060,7 +1060,7 @@ requires-dist = [
     { name = "python-http-client", specifier = "~=3.3.7" },
     { name = "redis", specifier = "~=8.1.0" },
     { name = "requests", specifier = ">=2.32.3,<2.35.0" },
-    { name = "sentry-sdk", specifier = "==2.69.1" },
+    { name = "sentry-sdk", specifier = "==2.69.2" },
     { name = "stripe", specifier = "==15.6.1" },
     { name = "twilio", specifier = ">=9.1,<9.12" },
     { name = "zeroconf", specifier = ">=0.132.2,<0.152.0" },
@@ -1156,12 +1156,14 @@ wheels = [
 
 [[package]]
 name = "mysqlclient"
-version = "2.2.8"
+version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/eb/b0/9df076488cb2e536d40ce6dbd4273c1f20a386e31ffe6e7cb613902b3c2a/mysqlclient-2.2.8.tar.gz", hash = "sha256:8ed20c5615a915da451bb308c7d0306648a4fd9a2809ba95c992690006306199", size = 92287, upload-time = "2026-02-10T10:58:37.405Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ef/8f/b9488795d21a76c1520905feba5afb6233f16510797a28b51f2b2688c93e/mysqlclient-2.3.0.tar.gz", hash = "sha256:bea8294964266f6486f1ca514ccfcdbc54d4fe0d32882b38c1d4594df870be8b", size = 102185, upload-time = "2026-09-14T15:38:30.784Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/42/44/6ae21b4e8490eb5167d04fa7452c462ffd72a502b96bf531477ef044a380/mysqlclient-2.2.8-cp314-cp314-win_amd64.whl", hash = "sha256:9bed7c8d3b629bdc09e17fb628d5b3b0a5fd1f12b09432b464b9126c727bedc0", size = 211644, upload-time = "2026-02-10T10:58:45.022Z" },
-    { url = "https://files.pythonhosted.org/packages/66/e5/037d55623be9f681236e04abe12e1290847c06bd48270c3f19ac33493cbf/mysqlclient-2.2.8-cp314-cp314t-win_amd64.whl", hash = "sha256:260cce0e81446c83bf0a389e0fae38d68547d9f8fc0833bc733014e10ce28a99", size = 213067, upload-time = "2026-02-10T10:58:43.389Z" },
+    { url = "https://files.pythonhosted.org/packages/6e/5f/f62d1263a942e97ca34ea8bf151c13a638fea7a5a544aa9db3d6dad7671d/mysqlclient-2.3.0-cp314-cp314-win_amd64.whl", hash = "sha256:5d4c53eb9c5625dd68b6fed32c8cf00ba19cd1c3073645dec309a9d16bd029e2", size = 222543, upload-time = "2026-09-14T15:38:22.036Z" },
+    { url = "https://files.pythonhosted.org/packages/9d/e5/1de3e1fc27009a6da30a52167e98f52ab4277d089eaff7152f6156745af9/mysqlclient-2.3.0-cp314-cp314-win_arm64.whl", hash = "sha256:cfe14103280d5a4968fe8a3ace2a8939ef68a1d881aec9872d06746106b49f7f", size = 213120, upload-time = "2026-09-14T15:38:23.063Z" },
+    { url = "https://files.pythonhosted.org/packages/b3/ea/d7ebc53af9d3341e5c049795ec5e88946d83cbd26ee468475ae0c3b21d7f/mysqlclient-2.3.0-cp314-cp314t-win_amd64.whl", hash = "sha256:673891700dafbc66a6a8df12059b53a65905ec6e8dec615392fb984299880c0d", size = 222969, upload-time = "2026-09-14T15:38:24.168Z" },
+    { url = "https://files.pythonhosted.org/packages/4b/42/9ff798c066e33df9f7b58822a3eaf26185c3cb7e61a8186a56243b006066/mysqlclient-2.3.0-cp314-cp314t-win_arm64.whl", hash = "sha256:fe27c63ba9088b28467bf276f93f0b4a9062beabaeeb9692593e774d1146cce2", size = 213680, upload-time = "2026-09-14T15:38:25.259Z" },
 ]
 
 [[package]]
@@ -1517,15 +1519,15 @@ wheels = [
 
 [[package]]
 name = "sentry-sdk"
-version = "2.69.1"
+version = "2.69.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "certifi" },
     { name = "urllib3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/10/16/85874f5e51f8d0767ee8c4b4c460c5ea2bc8a1b613d641d9d9577ba39d3a/sentry_sdk-2.69.1.tar.gz", hash = "sha256:f9284b417540b0784b994fa021eb6f1e30ae1cce593d83541274d03c93966eff", size = 1043599, upload-time = "2026-09-08T14:18:19.505Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cc/08/1211e4652384195ef754f8ed570566088dc848f8eda7d005abf13f05f17f/sentry_sdk-2.69.2.tar.gz", hash = "sha256:b4d8915a526e626b0b14a2925907554b722d3b8e3e3781570fc35791712af323", size = 1043564, upload-time = "2026-09-15T15:25:09.018Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/43/eb/17040f8a60c300fe4cc349088d3e351b88812f478b57a0af05a49af7cb7c/sentry_sdk-2.69.1-py3-none-any.whl", hash = "sha256:2d2556d9a14db548982b914cbed2a2dc07b6e55d941a620752f89a2afccfd78d", size = 528587, upload-time = "2026-09-08T14:18:18.151Z" },
+    { url = "https://files.pythonhosted.org/packages/ee/78/5d8b79fd60330234317aa827a1f5e445980a6f4e0ea6ed4e1187acb70a0f/sentry_sdk-2.69.2-py3-none-any.whl", hash = "sha256:25bc0a6c55bba0b83398212a7247f4f9f3190f189a1909b68e4807ef4b785895", size = 528765, upload-time = "2026-09-15T15:25:07.362Z" },
 ]
 
 [[package]]
