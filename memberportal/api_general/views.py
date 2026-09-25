@@ -232,7 +232,26 @@ class Login(APIView):
                 # if sso is disabled then exit
                 return Response(status=status.HTTP_400_BAD_REQUEST)
 
+        from membermatters.mfa_policy import (
+            admin_mfa_required,
+            request_has_verified_mfa,
+        )
+
         if request.user.is_authenticated:
+            if admin_mfa_required(request.user) and not request_has_verified_mfa(
+                request, request.user
+            ):
+                # Discard a password-only session so the frontend can restart
+                # through AllAuth and complete its MFA stage.
+                logout(request)
+                return Response(
+                    {
+                        "code": "mfa_required",
+                        "detail": "Use the AllAuth login endpoint to complete MFA.",
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
             if discourse_login:
                 payload = {
                     "nonce": discourse_nonce,
@@ -263,6 +282,15 @@ class Login(APIView):
 
         # correct login details
         if user is not None:
+            if admin_mfa_required(user):
+                return Response(
+                    {
+                        "code": "mfa_required",
+                        "detail": "Use the AllAuth login endpoint to complete MFA.",
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
             # if their email is verified
             if user.email_verified:
                 login(request, user)
@@ -357,6 +385,19 @@ class LoginKiosk(APIView):
         if not user.email_verified:
             return Response(
                 {"message": ERROR_EMAIL_NOT_VERIFIED}, status=status.HTTP_403_FORBIDDEN
+            )
+
+        # RFID login is a single factor and should not satisfy enforced staff MFA.
+        # We might consider adding a PIN for this usecase?
+        from membermatters.mfa_policy import admin_mfa_required
+
+        if admin_mfa_required(user):
+            return Response(
+                {
+                    "code": "mfa_required",
+                    "detail": "Staff users must use AllAuth MFA login.",
+                },
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         # rfid matches a user so log them in
@@ -1227,6 +1268,17 @@ class VerifyEmail(APIView):
                 user.save(update_fields=["email_verified"])
 
         if is_fresh:
+            from membermatters.mfa_policy import admin_mfa_required
+
+            if admin_mfa_required(user):
+                return Response(
+                    {
+                        "code": "mfa_required",
+                        "detail": "Use the AllAuth login endpoint to complete MFA.",
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
             # Session login runs after the DB commit so a session-store
             # write cannot extend the transaction's row-lock window.
             login(request, user)

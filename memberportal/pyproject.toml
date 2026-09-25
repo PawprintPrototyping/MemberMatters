@@ -55,6 +55,7 @@ dependencies = [
     "nh3~=0.3.5",
     "pillow>=12,<13",
     "docuseal~=1.0.9",
+    "django-allauth[headless,mfa]>=65,<66",
 ]
 
 [dependency-groups]
