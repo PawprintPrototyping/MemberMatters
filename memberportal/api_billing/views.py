@@ -18,7 +18,9 @@ from rest_framework import status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+
 import stripe
+from stripe import SignatureVerificationError
 import logging
 import uuid
 from enum import Enum
@@ -1414,10 +1416,12 @@ class StripeWebhook(StripeAPIView):
                 sig_header=request.headers.get("stripe-signature"),
                 secret=config.STRIPE_WEBHOOK_SECRET,
             )
-        except Exception as error:
-            logger.exception("Error validating Stripe signature.")
+        except (ValueError, SignatureVerificationError) as error:
             capture_exception(error)
-            return Response({"error": "Error validating Stripe signature."})
+            return Response(
+                {"error": "Error validating Stripe signature."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     def _get_profile(self, customer_id):
         try:

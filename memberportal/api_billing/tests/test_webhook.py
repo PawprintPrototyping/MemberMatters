@@ -100,7 +100,7 @@ class StripeWebhookTests(TestCase):
             ), patch.object(views, "capture_exception") as capture:
                 response = views.StripeWebhook.as_view()(request)
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(
             response.data,
             {"error": "Error validating Stripe signature."},
@@ -309,3 +309,306 @@ class StripeWebhookTests(TestCase):
         self.assertIsNone(profile.stripe_subscription_id)
         self.assertEqual(profile.subscription_status, "inactive")
         self.assertEqual(order, ["list", "void", "admin", "cancel"])
+
+    def test_ignores_unknown_customer_without_claiming_event(self):
+        event = self.make_event(event_id="evt_unknown_customer")
+
+        with override_config(**self.webhook_config):
+            with patch.object(
+                views.Profile.objects,
+                "get",
+                side_effect=Profile.DoesNotExist,
+            ), patch.object(views.StripeWebhook, "_claim_event") as claim, patch.object(
+                views.StripeWebhook,
+                "_handle_event",
+            ) as handle:
+                response = self.post_event(event)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        claim.assert_not_called()
+        handle.assert_not_called()
+        self.assertFalse(
+            ProcessedStripeEvent.objects.filter(
+                event_id="evt_unknown_customer"
+            ).exists()
+        )
+
+    def test_reports_duplicate_customer_without_claiming_event(self):
+        event = self.make_event(event_id="evt_duplicate_customer")
+        error = Profile.MultipleObjectsReturned()
+
+        with override_config(**self.webhook_config):
+            with patch.object(
+                views.Profile.objects,
+                "get",
+                side_effect=error,
+            ), patch.object(views, "capture_exception") as capture, patch.object(
+                views.StripeWebhook,
+                "_claim_event",
+            ) as claim, patch.object(
+                views.StripeWebhook, "_handle_event"
+            ) as handle:
+                response = self.post_event(event)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        capture.assert_called_once_with(error)
+        claim.assert_not_called()
+        handle.assert_not_called()
+        self.assertFalse(
+            ProcessedStripeEvent.objects.filter(
+                event_id="evt_duplicate_customer"
+            ).exists()
+        )
+
+    def test_ignores_unsupported_event_without_claiming_it(self):
+        self.make_profile()
+        event = self.make_event(
+            event_type="customer.updated",
+            event_id="evt_unsupported",
+        )
+
+        with override_config(**self.webhook_config):
+            with patch.object(
+                views.StripeWebhook, "_claim_event"
+            ) as claim, patch.object(
+                views.StripeWebhook,
+                "_handle_event",
+            ) as handle:
+                response = self.post_event(event)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        claim.assert_not_called()
+        handle.assert_not_called()
+        self.assertFalse(
+            ProcessedStripeEvent.objects.filter(event_id="evt_unsupported").exists()
+        )
+
+    def test_explicit_null_new_schema_subscription_does_not_fall_back_to_legacy(self):
+        self.make_profile()
+        event = self.make_event(
+            event_id="evt_explicit_null_subscription",
+            parent={"subscription_details": {"subscription": None}},
+        )
+
+        with override_config(**self.webhook_config):
+            with patch.object(views.StripeWebhook, "_handle_event") as handle:
+                response = self.post_event(event)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        handle.assert_not_called()
+        self.assertFalse(
+            ProcessedStripeEvent.objects.filter(
+                event_id="evt_explicit_null_subscription"
+            ).exists()
+        )
+
+    def test_ignores_deleted_subscription_for_a_different_membership(self):
+        self.make_profile()
+        event = self.make_event(
+            event_type="customer.subscription.deleted",
+            event_id="evt_other_deleted_subscription",
+            id="sub_other",
+            subscription=None,
+        )
+
+        with override_config(**self.webhook_config):
+            with patch.object(views.StripeWebhook, "_handle_event") as handle:
+                response = self.post_event(event)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        handle.assert_not_called()
+        self.assertFalse(
+            ProcessedStripeEvent.objects.filter(
+                event_id="evt_other_deleted_subscription"
+            ).exists()
+        )
+
+    def test_event_without_an_id_is_processed_for_every_delivery(self):
+        self.make_profile()
+        event = self.make_event()
+        event.pop("id")
+
+        with override_config(**self.webhook_config):
+            with patch.object(views.StripeWebhook, "_handle_event") as handle:
+                first_response = self.post_event(event)
+                second_response = self.post_event(event)
+
+        self.assertEqual(first_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(second_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(handle.call_count, 2)
+        self.assertEqual(ProcessedStripeEvent.objects.count(), 0)
+
+    def test_non_paid_invoice_does_not_change_membership_or_schedule_callbacks(self):
+        profile = self.make_profile()
+        event = self.make_event(event_id="evt_not_paid", status="open")
+
+        with override_config(**self.webhook_config):
+            with patch.object(Profile, "can_signup") as can_signup, patch.object(
+                User,
+                "log_event",
+            ) as log_event, patch.object(
+                User,
+                "email_notification",
+            ) as email_notification, patch.object(
+                views,
+                "send_email_to_admin",
+            ) as send_admin, patch.object(
+                Profile, "complete_signup"
+            ) as complete_signup:
+                with self.captureOnCommitCallbacks(execute=True) as callbacks:
+                    response = self.post_event(event)
+
+        profile.refresh_from_db()
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(profile.subscription_status, "pending")
+        self.assertIsNone(profile.subscription_first_created)
+        self.assertEqual(callbacks, [])
+        can_signup.assert_called_once()
+        email_notification.assert_not_called()
+        send_admin.assert_not_called()
+        complete_signup.assert_not_called()
+        log_event.assert_called_once_with("Membership payment received.", "stripe")
+
+    def test_ineligible_noob_member_receives_steps_email_without_admin_notice(self):
+        profile = self.make_profile()
+        event = self.make_event(event_id="evt_noob_steps")
+
+        with override_config(**self.webhook_config):
+            with patch.object(
+                Profile,
+                "can_signup",
+                return_value={"success": False},
+            ), patch.object(User, "log_event"), patch.object(
+                User,
+                "email_notification",
+            ) as email_notification, patch.object(
+                views,
+                "send_email_to_admin",
+            ) as send_admin:
+                with self.captureOnCommitCallbacks(execute=True):
+                    response = self.post_event(event)
+
+        profile.refresh_from_db()
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(profile.subscription_status, "active")
+        email_notification.assert_called_once()
+        send_admin.assert_not_called()
+
+    def test_failed_payment_email_error_is_captured(self):
+        self.make_profile()
+        event = self.make_event(
+            event_type="invoice.payment_failed",
+            event_id="evt_failed_payment_email_error",
+        )
+        error = RuntimeError("email unavailable")
+
+        with override_config(**self.webhook_config):
+            with patch.object(User, "log_event"), patch.object(
+                User,
+                "email_notification",
+                side_effect=error,
+            ), patch.object(views, "capture_exception") as capture:
+                with self.captureOnCommitCallbacks(execute=True):
+                    response = self.post_event(event)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        capture.assert_called_once_with(error)
+
+    def test_subscription_deleted_reports_invoice_list_failure_and_still_cancels(self):
+        profile = self.make_profile(state="active", subscription_status="active")
+        event = self.make_event(
+            event_type="customer.subscription.deleted",
+            event_id="evt_invoice_list_failure",
+            id="sub_test",
+            subscription=None,
+        )
+        error = views.stripe.error.APIError("invoice list unavailable")
+
+        with override_config(**self.webhook_config):
+            with patch.object(
+                views.stripe.Invoice,
+                "list",
+                side_effect=error,
+            ), patch.object(
+                views.stripe.Invoice,
+                "void_invoice",
+            ) as void_invoice, patch.object(
+                User, "log_event"
+            ) as log_event, patch.object(
+                views,
+                "send_email_to_admin",
+            ) as send_admin, patch.object(
+                Profile,
+                "complete_cancel",
+            ) as complete_cancel, patch.object(
+                views,
+                "capture_exception",
+            ) as capture:
+                with self.captureOnCommitCallbacks(execute=True):
+                    response = self.post_event(event)
+
+        profile.refresh_from_db()
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(profile.subscription_status, "inactive")
+        capture.assert_called_once_with(error)
+        void_invoice.assert_not_called()
+        self.assertEqual(send_admin.call_count, 2)
+        self.assertIn(
+            "audit cancelled Stripe subscription",
+            send_admin.call_args_list[0].kwargs["subject"],
+        )
+        log_event.assert_called_once()
+        complete_cancel.assert_called_once()
+
+    def test_subscription_deleted_continues_after_one_invoice_void_failure(self):
+        profile = self.make_profile(state="active", subscription_status="active")
+        event = self.make_event(
+            event_type="customer.subscription.deleted",
+            event_id="evt_invoice_void_failure",
+            id="sub_test",
+            subscription=None,
+        )
+        failed_invoice = SimpleNamespace(id="in_failed")
+        succeeding_invoice = SimpleNamespace(id="in_succeeds")
+        invoices = SimpleNamespace(
+            auto_paging_iter=Mock(return_value=[failed_invoice, succeeding_invoice])
+        )
+        error = views.stripe.error.APIError("invoice void unavailable")
+
+        def void_invoice(invoice_id):
+            if invoice_id == failed_invoice.id:
+                raise error
+
+        with override_config(**self.webhook_config):
+            with patch.object(
+                views.stripe.Invoice,
+                "list",
+                return_value=invoices,
+            ), patch.object(
+                views.stripe.Invoice,
+                "void_invoice",
+                side_effect=void_invoice,
+            ) as void, patch.object(
+                User, "log_event"
+            ) as log_event, patch.object(
+                views,
+                "send_email_to_admin",
+            ) as send_admin, patch.object(
+                Profile, "complete_cancel"
+            ), patch.object(
+                views,
+                "capture_exception",
+            ) as capture:
+                with self.captureOnCommitCallbacks(execute=True):
+                    response = self.post_event(event)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(void.call_args_list[0].args, ("in_failed",))
+        self.assertEqual(void.call_args_list[1].args, ("in_succeeds",))
+        capture.assert_called_once_with(error)
+        log_event.assert_called_once()
+        self.assertEqual(send_admin.call_count, 2)
+        self.assertIn(
+            "void Stripe invoice in_failed",
+            send_admin.call_args_list[0].kwargs["subject"],
+        )
