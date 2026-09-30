@@ -1403,10 +1403,12 @@ class StripeWebhook(StripeAPIView):
             capture_exception(e)
             return Response({"error": "Error validating Stripe signature."})
 
-        data = event["data"]
+        # Stripe v15 turns event.data.object into a typed Stripe resource
+        # (for example, an Invoice), not a dict. Normalize it once so the
+        # downstream event handlers can safely use the established mapping
+        # access and work across Stripe API invoice schema versions.
+        data = event["data"]["object"].to_dict()
         event_type = event["type"]
-
-        data = data["object"]
 
         # Some Stripe events (e.g. account-level ones) don't carry a customer
         # field — we can't do anything useful with those.
@@ -1431,25 +1433,17 @@ class StripeWebhook(StripeAPIView):
             capture_exception(e)
             return Response()
 
-        # Both invoice events must be scoped to the membership subscription —
-        # the customer can have unrelated invoices (admin-created one-offs,
-        # memberbucks-related charges, etc.) and acting on those would falsely
-        # activate the member or send misleading "membership payment failed"
-        # emails. The admin "mark paid out-of-band" tool has the same guard.
-        if event_type in (INVOICE_PAID, INVOICE_PAYMENT_FAILED):
-            invoice_subscription = data.get("subscription")
-            if (
-                not invoice_subscription
-                or invoice_subscription != member_profile.stripe_subscription_id
-            ):
-                return Response()
+        if event_type in (
+            INVOICE_PAID,
+            INVOICE_PAYMENT_FAILED,
+            "customer.subscription.deleted",
+        ):
+            locked_profile = member_profile
+            event_id = event["id"] if "id" in event else None
 
-            # Scope events to the member's current sub — the customer may
-            # have unrelated invoices/subs (admin one-offs, memberbucks,
-            # replayed cancelled subs) we must not act on. Run the scope
-            # check BEFORE the dedup insert so an out-of-scope event doesn't
-            # poison its own retries — fix it, redeliver, and processing
-            # picks up cleanly.
+            # Scope events to the member's current subscription before
+            # claiming the event. An out-of-scope delivery must remain
+            # retryable if its subscription association is later corrected.
             if event_type in (INVOICE_PAID, INVOICE_PAYMENT_FAILED):
                 invoice_subscription = _invoice_subscription_id(data)
                 if (
@@ -1457,9 +1451,8 @@ class StripeWebhook(StripeAPIView):
                     or invoice_subscription != locked_profile.stripe_subscription_id
                 ):
                     return Response()
-            elif event_type == "customer.subscription.deleted":
-                if data.get("id") != locked_profile.stripe_subscription_id:
-                    return Response()
+            elif data.get("id") != locked_profile.stripe_subscription_id:
+                return Response()
 
             # Idempotency: Stripe retries deliveries for up to ~3 days on non-2xx
             # responses or timeouts. Skip any event id we've already processed so
