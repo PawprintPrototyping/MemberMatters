@@ -1,3 +1,4 @@
+import requests
 import sentry_sdk
 from django.contrib.auth import (
     authenticate,
@@ -538,14 +539,22 @@ class ProfileDetail(generics.GenericAPIView):
         }
         if config.ENABLE_DOCUSEAL_INTEGRATION:
             response["memberdocsLink"] = []
-            submission = get_docuseal_submission(p)
+            try:
+                submission = get_docuseal_submission(p)
+            except requests.RequestException as error:
+                logger.warning(
+                    "DocuSeal submission lookup failed for profile %s: %s",
+                    p.pk,
+                    error,
+                )
+                submission = None
             if submission is not None:
                 try:
                     # assuming here that the zeroth party will always be the member
                     for docs in submission["submitters"][0]["documents"]:
                         response["memberdocsLink"].append(docs["url"])
-                except KeyError as e:
-                    capture_exception(e)
+                except KeyError as error:
+                    sentry_sdk.capture_exception(error)
 
         # Induction links and banner state now derive from independent local
         # provider checks. Profile reads never query external providers or
