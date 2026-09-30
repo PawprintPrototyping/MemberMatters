@@ -539,12 +539,13 @@ class ProfileDetail(generics.GenericAPIView):
         if config.ENABLE_DOCUSEAL_INTEGRATION:
             response["memberdocsLink"] = []
             submission = get_docuseal_submission(p)
-            try:
-                # assuming here that the zeroth party will always be the member
-                for docs in submission["submitters"][0]["documents"]:
-                    response["memberdocsLink"].append(docs["url"])
-            except KeyError as e:
-                capture_exception(e)
+            if submission is not None:
+                try:
+                    # assuming here that the zeroth party will always be the member
+                    for docs in submission["submitters"][0]["documents"]:
+                        response["memberdocsLink"].append(docs["url"])
+                except KeyError as e:
+                    capture_exception(e)
 
         # Induction links and banner state now derive from independent local
         # provider checks. Profile reads never query external providers or
