@@ -450,6 +450,9 @@ CONSTANCE_CONFIG = CONSTANCE_CONFIG
 CONSTANCE_CONFIG_FIELDSETS = CONSTANCE_CONFIG_FIELDSETS
 
 OIDC_USERINFO = "membermatters.oidc_provider_settings.userinfo"
+# Add standard and additional claims to the id token
+# (some clients never check the userinfo endpoint)
+OIDC_IDTOKEN_INCLUDE_CLAIMS = True
 OIDC_EXTRA_SCOPE_CLAIMS = "membermatters.oidc_provider_settings.CustomScopeClaims"
 
 USE_X_FORWARDED_HOST = True

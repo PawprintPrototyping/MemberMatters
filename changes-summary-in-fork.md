@@ -68,6 +68,8 @@
 - **Account/auth hardening**: unique `screen_name` constraint, case-insensitive
   email, atomic user writes, throttling on Register/ResetPassword, atomic
   verify-email token, `ENABLE_REGISTRATION` kill-switch.
+- **OIDC Provider**: [Enable sending claims in ID token](https://django-oidc-provider.readthedocs.io/en/master/sections/settings.html#oidc-idtoken-include-claims)
+  for clients which do not check the userinfo endpoint (e.g. PrintStash).
 - **Configurability**: new toggles to hide/disable features — recent-swipes page,
   last-seen page, report-issue card, member email/basic-detail editing, optional
   screen name, member-entered access cards.
