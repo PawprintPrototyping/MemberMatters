@@ -7,8 +7,11 @@ from profile.models import (
     CompleteSignupResult,
     SignupTriggeredBy,
     CancelTriggeredBy,
+    ProfileState,
+    SubscriptionState,
 )
-from api_admin_tools.models import *
+
+# from api_admin_tools.models import
 from .models import ProcessedStripeEvent
 from .plan_switch import switch_payment_plan
 
@@ -19,6 +22,7 @@ from rest_framework.views import APIView
 import stripe
 import logging
 import uuid
+from enum import Enum
 from services.induction import refresh as refresh_induction
 from services.emails import send_email_to_admin
 from constance import config
@@ -29,6 +33,24 @@ from sentry_sdk import capture_exception
 from django.utils import timezone
 
 logger = logging.getLogger("billing")
+
+BILLING_STRIPE_ERROR = "billing.stripeError"
+BILLING_STATE_LOCKED = "billing.stateLocked"
+BILLING_INVOICING_DISABLED = "billing.invoiceDisabled"
+BILLING_NEW_SUBSCRIPTIONS_DISABLED = "billing.newSubscriptionsDisabled"
+SIGNUP_SUBSCRIPTION_FAILED = "signup.subscriptionFailed"
+SIGNUP_AWAITING_INVOICE_PAYMENT = "signup.awaitingInvoicePayment"
+SIGNUP_REQUIREMENTS_NOT_MET = "signup.requirementsNotMet"
+SIGNUP_SKIP_NOT_ALLOWED = "signup.skipNotAllowed"
+ACCESS_CARD_MEMBER_ENTRY_DISABLED = "accessCard.memberEntryDisabled"
+ACCESS_CARD_REQUIRED = "accessCard.required"
+ACCESS_CARD_ADMIN_REBIND_REQUIRED = "accessCard.adminRebindRequired"
+ACCESS_CARD_ALREADY_BOUND = "accessCard.alreadyBound"
+ACCESS_CARD_ALREAD_IN_USE = "accessCard.alreadyInUse"
+PAYMENT_PLAN_DOES_NOT_EXIST = "paymentPlan.notExists"
+
+INVOICE_PAID = "invoice.paid"
+INVOICE_PAYMENT_FAILED = "invoice.payment_failed"
 
 
 def _get_subscription_current_period_end(subscription):
@@ -77,7 +99,7 @@ def ensure_stripe_customer(user):
         except stripe.error.StripeError as e:
             capture_exception(e)
             user.log_event("Error while creating stripe customer.", "stripe", str(e))
-            return False, "billing.stripeError"
+            return False, BILLING_STRIPE_ERROR
 
 
 class StripeAPIView(APIView):
@@ -116,7 +138,7 @@ class MemberBucksAddCard(StripeAPIView):
                 "Stripe error while creating SetupIntent.", "stripe", str(e)
             )
             return Response(
-                {"success": False, "message": "billing.stripeError"},
+                {"success": False, "message": BILLING_STRIPE_ERROR},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
@@ -151,7 +173,7 @@ class MemberBucksAddCard(StripeAPIView):
                     str(e),
                 )
                 return Response(
-                    {"success": False, "message": "billing.stripeError"},
+                    {"success": False, "message": BILLING_STRIPE_ERROR},
                     status=status.HTTP_503_SERVICE_UNAVAILABLE,
                 )
 
@@ -216,7 +238,7 @@ class MemberBucksAddCard(StripeAPIView):
                         str(e),
                     )
                     return Response(
-                        {"success": False, "message": "billing.stripeError"},
+                        {"success": False, "message": BILLING_STRIPE_ERROR},
                         status=status.HTTP_503_SERVICE_UNAVAILABLE,
                     )
 
@@ -425,7 +447,7 @@ class PaymentPlanSignup(StripeAPIView):
         # Refuse before any Stripe call so a locked member can't pay into a void.
         if request.user.profile.state_locked:
             return Response(
-                {"success": False, "message": "billing.stateLocked"},
+                {"success": False, "message": BILLING_STATE_LOCKED},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -434,7 +456,7 @@ class PaymentPlanSignup(StripeAPIView):
         # PaymentPlanResume for cancelling members must all keep working.
         if not config.ENABLE_NEW_SUBSCRIPTIONS:
             return Response(
-                {"success": False, "message": "billing.newSubscriptionsDisabled"},
+                {"success": False, "message": BILLING_NEW_SUBSCRIPTIONS_DISABLED},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
@@ -446,7 +468,7 @@ class PaymentPlanSignup(StripeAPIView):
 
         if billing_method == "invoice" and not config.ENABLE_INVOICE_BILLING:
             return Response(
-                {"success": False, "message": "billing.invoiceDisabled"},
+                {"success": False, "message": BILLING_INVOICING_DISABLED},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -471,7 +493,7 @@ class PaymentPlanSignup(StripeAPIView):
             # locked member.
             if locked_profile.state_locked:
                 return Response(
-                    {"success": False, "message": "billing.stateLocked"},
+                    {"success": False, "message": BILLING_STATE_LOCKED},
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
@@ -484,11 +506,13 @@ class PaymentPlanSignup(StripeAPIView):
             if error_response is not None:
                 return error_response
 
-            if new_subscription.status == "active":
+            if new_subscription.status == SubcriptionState.ACTIVE:
                 locked_profile.stripe_subscription_id = new_subscription.id
                 locked_profile.membership_plan = new_plan
                 locked_profile.subscription_status = (
-                    "pending" if billing_method == "invoice" else "active"
+                    SubscriptionState.PENDING
+                    if billing_method == "invoice"
+                    else SubscriptionState.INACTIVE
                 )
                 locked_profile.billing_method = billing_method
                 locked_profile.pending_signup_email_sent = False
@@ -508,7 +532,7 @@ class PaymentPlanSignup(StripeAPIView):
                     "",
                 )
 
-        if new_subscription.status == "active":
+        if new_subscription.status == SubscriptionState.ACTIVE:
             # Outside the atomic so complete_signup can take its own lock.
             locked_profile.complete_signup(SignupTriggeredBy.SUBSCRIPTION_CREATED)
             return Response({"success": True})
@@ -523,7 +547,7 @@ class PaymentPlanSignup(StripeAPIView):
         # doesn't dangle on the customer and trigger a duplicate next try.
         _cancel_failed_subscription(request.user, new_subscription.id)
 
-        return Response({"success": False, "message": "signup.subscriptionFailed"})
+        return Response({"success": False, "message": SIGNUP_SUBSCRIPTION_FAILED})
 
 
 class CanSignup(APIView):
@@ -555,14 +579,14 @@ class AssignAccessCard(APIView):
     def post(self, request):
         if not config.MEMBER_CAN_ENTER_ACCESS_CARD:
             return Response(
-                {"success": False, "message": "accessCard.memberEntryDisabled"},
+                {"success": False, "message": ACCESS_CARD_MEMBER_ENTRY_DISABLED},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
         access_card = (request.data.get("accessCard") or "").strip()
         if not access_card:
             return Response(
-                {"success": False, "message": "accessCard.required"},
+                {"success": False, "message": ACCESS_CARD_REQUIRED},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -576,13 +600,16 @@ class AssignAccessCard(APIView):
                 pk=request.user.profile.pk
             )
 
-            if locked_profile.state not in ("noob", "accountonly"):
+            if locked_profile.state not in (
+                ProfileState.NOOB,
+                ProfileState.ACCOUNT_ONLY,
+            ):
                 request.user.log_event(
                     f"Member tried to self-rebind RFID while state={locked_profile.state}; refused.",
                     "profile",
                 )
                 return Response(
-                    {"success": False, "message": "accessCard.adminRebindRequired"},
+                    {"success": False, "message": ACCESS_CARD_ADMIN_REBIND_REQUIRED},
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
@@ -592,7 +619,7 @@ class AssignAccessCard(APIView):
                     "profile",
                 )
                 return Response(
-                    {"success": False, "message": "accessCard.alreadyBound"},
+                    {"success": False, "message": ACCESS_CARD_ALREADY_BOUND},
                     status=status.HTTP_409_CONFLICT,
                 )
 
@@ -606,7 +633,7 @@ class AssignAccessCard(APIView):
                     "profile",
                 )
                 return Response(
-                    {"success": False, "message": "accessCard.alreadyInUse"},
+                    {"success": False, "message": ACCESS_CARD_ALREAD_IN_USE},
                     status=status.HTTP_409_CONFLICT,
                 )
 
@@ -624,7 +651,7 @@ class AssignAccessCard(APIView):
                     "profile",
                 )
                 return Response(
-                    {"success": False, "message": "accessCard.alreadyInUse"},
+                    {"success": False, "message": ACCESS_CARD_ALREAD_IN_USE},
                     status=status.HTTP_409_CONFLICT,
                 )
 
@@ -667,27 +694,27 @@ def _serialize_complete_signup(result: CompleteSignupResult) -> Response:
             {
                 "success": True,
                 "awaitingPayment": True,
-                "message": "signup.awaitingInvoicePayment",
+                "message": SIGNUP_AWAITING_INVOICE_PAYMENT,
             }
         )
     if result.outcome == CompleteSignupOutcome.REQUIREMENTS_UNMET:
         return Response(
             {
                 "success": False,
-                "message": "signup.requirementsNotMet",
+                "message": SIGNUP_REQUIREMENTS_NOT_MET,
                 "items": result.required_steps,
             }
         )
     if result.outcome == CompleteSignupOutcome.STATE_LOCKED:
         return Response(
-            {"success": False, "message": "billing.stateLocked"},
+            {"success": False, "message": BILLING_STATE_LOCKED},
             status=status.HTTP_403_FORBIDDEN,
         )
     # NO_SUBSCRIPTION
     return Response(
         {
             "success": False,
-            "message": "signup.requirementsNotMet",
+            "message": SIGNUP_REQUIREMENTS_NOT_MET,
             "items": ["No active subscription found."],
         }
     )
@@ -722,18 +749,18 @@ class SkipSignup(APIView):
             )
 
             if (
-                locked_profile.state != "noob"
-                or locked_profile.subscription_status != "inactive"
+                locked_profile.state != ProfileState.NOOB
+                or locked_profile.subscription_status != SubscriptionStatus.INACTIVE
             ):
                 return Response(
                     {
                         "success": False,
-                        "message": "signup.skipNotAllowed",
+                        "message": SIGNUP_SKIP_NOT_ALLOWED,
                     },
                     status=status.HTTP_409_CONFLICT,
                 )
 
-            locked_profile.state = "accountonly"
+            locked_profile.state = ProfileState.ACCOUNT_ONLY
             locked_profile.save(update_fields=["state"])
 
         return Response({"success": True})
@@ -821,7 +848,7 @@ class PaymentPlanSwitch(StripeAPIView):
 def _no_plan_response(user):
     user.log_event("Member tried to modify nonexistant membership plan.", "stripe")
     return Response(
-        {"success": False, "message": "paymentPlan.notExists"},
+        {"success": False, "message": PAYMENT_PLAN_DOES_NOT_EXIST},
         status=status.HTTP_404_NOT_FOUND,
     )
 
@@ -931,7 +958,7 @@ class PaymentPlanResume(StripeAPIView):
     def post(self, request):
         if request.user.profile.state_locked:
             return Response(
-                {"success": False, "message": "billing.stateLocked"},
+                {"success": False, "message": BILLING_STATE_LOCKED},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -971,7 +998,7 @@ class PaymentPlanResume(StripeAPIView):
             # the orphan-Stripe-sub rationale.
             if locked_profile.state_locked:
                 return Response(
-                    {"success": False, "message": "billing.stateLocked"},
+                    {"success": False, "message": BILLING_STATE_LOCKED},
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
@@ -987,10 +1014,12 @@ class PaymentPlanResume(StripeAPIView):
             if error_response is not None:
                 return error_response
 
-            if new_subscription.status == "active":
+            if new_subscription.status == SubscriptionState.ACTIVE:
                 locked_profile.stripe_subscription_id = new_subscription.id
                 locked_profile.subscription_status = (
-                    "pending" if billing_method == "invoice" else "active"
+                    SubscriptionState.PENDING
+                    if billing_method == "invoice"
+                    else SubscriptionState.ACTIVE
                 )
                 locked_profile.pending_signup_email_sent = False
                 locked_profile.save(
@@ -1021,7 +1050,7 @@ class PaymentPlanResume(StripeAPIView):
         # Cancel the non-active sub so a retry doesn't duplicate it.
         _cancel_failed_subscription(request.user, new_subscription.id)
 
-        return Response({"success": False, "message": "signup.subscriptionFailed"})
+        return Response({"success": False, "message": SIGNUP_SUBSCRIPTION_FAILED})
 
     def _resume_cancelling(self, request):
         # Lock so a concurrent webhook can't null stripe_subscription_id
@@ -1040,7 +1069,7 @@ class PaymentPlanResume(StripeAPIView):
                 or locked_profile.subscription_status != "cancelling"
             ):
                 return Response(
-                    {"success": False, "message": "paymentPlan.notExists"},
+                    {"success": False, "message": PAYMENT_PLAN_DOES_NOT_EXIST},
                     status=status.HTTP_409_CONFLICT,
                 )
 
@@ -1141,7 +1170,7 @@ class PaymentPlanCancel(StripeAPIView):
                 or not locked_profile.stripe_subscription_id
             ):
                 return Response(
-                    {"success": False, "message": "paymentPlan.notExists"},
+                    {"success": False, "message": PAYMENT_PLAN_DOES_NOT_EXIST},
                     status=status.HTTP_409_CONFLICT,
                 )
 
@@ -1280,7 +1309,7 @@ class PaymentPlanCancel(StripeAPIView):
 
             if not locked_profile.stripe_subscription_id:
                 return Response(
-                    {"success": False, "message": "paymentPlan.notExists"},
+                    {"success": False, "message": PAYMENT_PLAN_DOES_NOT_EXIST},
                     status=status.HTTP_409_CONFLICT,
                 )
 
@@ -1407,14 +1436,16 @@ class StripeWebhook(StripeAPIView):
                 payload=request.body, sig_header=signature, secret=webhook_secret
             )
         except Exception as e:
-            logger.error(e)
+            logger.exception("Error validating Stripe signature.")
             capture_exception(e)
             return Response({"error": "Error validating Stripe signature."})
 
-        data = event["data"]
+        # Stripe v15 turns event.data.object into a typed Stripe resource
+        # (for example, an Invoice), not a dict. Normalize it once so the
+        # downstream event handlers can safely use the established mapping
+        # access and work across Stripe API invoice schema versions.
+        data = event["data"]["object"].to_dict()
         event_type = event["type"]
-
-        data = data["object"]
 
         # Some Stripe events (e.g. account-level ones) don't carry a customer
         # field — we can't do anything useful with those.
@@ -1439,35 +1470,26 @@ class StripeWebhook(StripeAPIView):
             capture_exception(e)
             return Response()
 
-        # Both invoice events must be scoped to the membership subscription —
-        # the customer can have unrelated invoices (admin-created one-offs,
-        # memberbucks-related charges, etc.) and acting on those would falsely
-        # activate the member or send misleading "membership payment failed"
-        # emails. The admin "mark paid out-of-band" tool has the same guard.
-        if event_type in ("invoice.paid", "invoice.payment_failed"):
-            invoice_subscription = data.get("subscription")
-            if (
-                not invoice_subscription
-                or invoice_subscription != member_profile.stripe_subscription_id
-            ):
-                return Response()
+        if event_type in (
+            INVOICE_PAID,
+            INVOICE_PAYMENT_FAILED,
+            "customer.subscription.deleted",
+        ):
+            locked_profile = member_profile
+            event_id = event["id"] if "id" in event else None
 
-            # Scope events to the member's current sub — the customer may
-            # have unrelated invoices/subs (admin one-offs, memberbucks,
-            # replayed cancelled subs) we must not act on. Run the scope
-            # check BEFORE the dedup insert so an out-of-scope event doesn't
-            # poison its own retries — fix it, redeliver, and processing
-            # picks up cleanly.
-            if event_type in ("invoice.paid", "invoice.payment_failed"):
+            # Scope events to the member's current subscription before
+            # claiming the event. An out-of-scope delivery must remain
+            # retryable if its subscription association is later corrected.
+            if event_type in (INVOICE_PAID, INVOICE_PAYMENT_FAILED):
                 invoice_subscription = _invoice_subscription_id(data)
                 if (
                     not invoice_subscription
                     or invoice_subscription != locked_profile.stripe_subscription_id
                 ):
                     return Response()
-            elif event_type == "customer.subscription.deleted":
-                if data.get("id") != locked_profile.stripe_subscription_id:
-                    return Response()
+            elif data.get("id") != locked_profile.stripe_subscription_id:
+                return Response()
 
             # Idempotency: Stripe retries deliveries for up to ~3 days on non-2xx
             # responses or timeouts. Skip any event id we've already processed so

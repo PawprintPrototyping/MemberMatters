@@ -1,5 +1,5 @@
 from access.models import DoorLog, InterlockLog
-from profile.models import Profile
+from profile.models import Profile, ProfileState
 from api_meeting.models import Meeting
 from api_meeting.permissions import ProxyVotingPermission
 from constance import config
@@ -15,6 +15,8 @@ from rest_framework.views import APIView
 import logging
 
 logger = logging.getLogger("api_member_tools")
+
+EPOCH_TIMESTAMP = "1970-01-01T00:00:00.000Z"
 
 
 class SwipesList(APIView):
@@ -89,7 +91,7 @@ class Lastseen(APIView):
         last_seen = []
 
         for member in self.queryset.all():
-            if not member.state == "active":
+            if member.state != ProfileState.ACTIVE:
                 continue
 
             if member.last_seen is not None:
@@ -201,8 +203,8 @@ class IssueDetail(APIView):
                             },
                         },
                     },
-                    "created": "1970-01-01T00:00:00.000Z",
-                    "updated": "1970-01-01T00:00:00.000Z",
+                    "created": EPOCH_TIMESTAMP,
+                    "updated": EPOCH_TIMESTAMP,
                     "project_id": vikunja_project_id,
                     "bucket_id": 0,
                     "reminder_dates": None,
@@ -215,16 +217,14 @@ class IssueDetail(APIView):
                     headers={"Authorization": "Bearer " + config.VIKUNJA_API_TOKEN},
                 )
 
-                if (vikunja_label_id is not None) and (
-                    task_response.status_code == 201
-                ):
+                if task_response.status_code == 201:
                     task_id = "unknown"
                     try:
                         task_id = task_response.json()["id"]
                         vikunja_task_url = f"{config.VIKUNJA_API_URL}/tasks/{task_id}"
                         label_body = {
                             "label_id": int(vikunja_label_id),
-                            "created": "1970-01-01T00:00:00.000Z",
+                            "created": EPOCH_TIMESTAMP,
                         }
 
                         label_response = requests.request(
@@ -246,7 +246,6 @@ class IssueDetail(APIView):
                         logger.exception(
                             f"Failed to add label to Vikunja task {task_id}."
                         )
-                        pass
 
                 if task_response.status_code != 201:
                     logger.error(
@@ -333,7 +332,9 @@ class MeetingList(APIView):
     """
 
     permission_classes = (ProxyVotingPermission,)
-    queryset = Meeting.objects.filter(date__gt=timezone.now())
+
+    def get_queryset(self):
+        return Meeting.objects.filter(date__gt=timezone.now())
 
     def get(self, request):
         def get_meeting(meeting):
@@ -345,7 +346,7 @@ class MeetingList(APIView):
                 "date": date,
             }
 
-        response = list(map(get_meeting, self.queryset.all()))
+        response = list(map(get_meeting, self.get_queryset().all()))
 
         return Response(response)
 
@@ -366,6 +367,6 @@ class Members(APIView):
             }
 
         members = list(map(get_member, Profile.objects.filter(state="active")))
-        shuffle(members)
+        shuffle(members)  # NOSONAR python:S2245
 
         return Response(members)

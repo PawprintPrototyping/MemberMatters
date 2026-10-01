@@ -157,7 +157,7 @@ class AccessDeviceConsumer(JsonWebsocketConsumer):
                     )
 
         except Exception as e:
-            logger.error("Error receiving message from device: %s", e)
+            logger.exception("Error receiving message from device")
             self.send_json({"command": "error"})
             raise e
 
@@ -544,7 +544,7 @@ class MemberbucksConsumer(AccessDeviceConsumer):
                 )
                 message = f"We just tried to debit ${amount} from your {config.MEMBERBUCKS_NAME} balance but were not "
                 f"successful. You currently have ${profile.memberbucks_balance}. If this wasn't you, please let us know "
-                f"immediately."
+                "immediately."
 
                 User.objects.get(profile=profile).email_notification(subject, message)
 
@@ -613,7 +613,7 @@ class MemberbucksConsumer(AccessDeviceConsumer):
                 )
                 message = f"Description: {transaction.description}. Balance Remaining: "
                 f"${profile.memberbucks_balance}. If this wasn't you, or you believe there "
-                f"has been an error, please let us know."
+                "has been an error, please let us know."
 
                 User.objects.get(profile=profile).email_notification(subject, message)
 
