@@ -235,7 +235,7 @@ import { mapGetters } from 'vuex';
 import formMixin from '../../mixins/formMixin';
 import icons from '../../icons';
 import { defineComponent } from 'vue';
-import { i18n } from '../../boot/i18n';
+import { i18n } from 'src/services/i18n';
 import {
   parsePhoneNumberFromString,
   type CountryCode,

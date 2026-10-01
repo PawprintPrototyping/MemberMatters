@@ -112,6 +112,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ("profile", "0028_profile_memberdoc_url"),
         ("database", "0002_auto_20190129_2304"),
+        ("constance", "0003_drop_pickle"),
     ]
 
     operations = [

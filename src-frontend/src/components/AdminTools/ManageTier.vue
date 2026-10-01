@@ -348,7 +348,7 @@
 import { defineComponent } from 'vue';
 import { useStore } from 'vuex';
 import { AxiosResponse } from 'axios';
-import { api } from 'boot/axios';
+import { api } from 'src/services/api';
 import icons from '../../icons';
 import formatMixin from '../../mixins/formatMixin';
 import formMixin from '../../mixins/formMixin';

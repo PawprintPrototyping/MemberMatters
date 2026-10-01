@@ -38,6 +38,41 @@
 
       <selected-tier :plan="membershipPlan" :tier="currentTier" />
 
+      <q-banner v-if="planSwitchSuccess" class="bg-success text-white q-mb-md">
+        <div class="text-h6">{{ $t('paymentPlans.switchSuccess') }}</div>
+        <p>{{ $t('paymentPlans.switchSuccessDescription') }}</p>
+      </q-banner>
+
+      <div v-if="canSwitchPlan" class="full-width q-pa-md">
+        <div class="text-h6 q-pb-sm">
+          {{ $t('paymentPlans.switchTitle') }}
+        </div>
+        <p>{{ $t('paymentPlans.switchDescription') }}</p>
+
+        <div v-if="loadingSwitchPlans" class="q-pa-md text-center">
+          <q-spinner color="primary" size="md" />
+        </div>
+        <q-banner
+          v-else-if="switchPlansUnavailable"
+          class="bg-warning text-white rounded-borders"
+        >
+          {{ $t('paymentPlans.switchUnavailable') }}
+        </q-banner>
+        <div v-else-if="switchablePlans.length === 0" class="text-caption">
+          {{ $t('paymentPlans.switchNoOptions') }}
+        </div>
+        <div v-else class="row items-stretch">
+          <plan-card
+            v-for="plan in switchablePlans"
+            :key="plan.id"
+            class="col-xs-12 col-sm-6 col-md"
+            :plan="plan"
+            :disabled="switchingPlan"
+            @selected="switchPlan"
+          />
+        </div>
+      </div>
+
       <q-banner
         v-if="subscriptionStatus === 'pending'"
         class="bg-orange text-white q-mb-md"
@@ -165,6 +200,7 @@ import { defineComponent } from 'vue';
 import { mapGetters, mapActions } from 'vuex';
 import SelectTier from '@components/Billing/SelectTier.vue';
 import SelectedTier from '@components/Billing/SelectedTier.vue';
+import PlanCard from '@components/Billing/PlanCard.vue';
 import SignupRequiredSteps from '@components/Billing/SignupRequiredSteps.vue';
 import MemberBucksManageBilling from 'components/MemberBucksManageBilling.vue';
 import MembershipStateBanner from '@components/MembershipStateBanner.vue';
@@ -175,6 +211,7 @@ export default defineComponent({
     MemberBucksManageBilling,
     SelectTier,
     SelectedTier,
+    PlanCard,
     SignupRequiredSteps,
     MembershipStateBanner,
   },
@@ -185,6 +222,11 @@ export default defineComponent({
       cancelSuccess: false,
       loadingSubscription: true,
       subscriptionUnavailable: false,
+      loadingSwitchPlans: false,
+      switchPlansUnavailable: false,
+      switchingPlan: false,
+      planSwitchSuccess: false,
+      availablePlans: [],
       subscriptionInfo: {
         billingCycleAnchor: null,
         currentPeriodEnd: null,
@@ -220,6 +262,12 @@ export default defineComponent({
         this.subscriptionStatus === 'active' ||
         this.subscriptionStatus === 'pending'
       );
+    },
+    canSwitchPlan() {
+      return this.subscriptionStatus === 'active' && !!this.membershipPlan;
+    },
+    switchablePlans() {
+      return this.availablePlans;
     },
     billingMethod() {
       return this?.profile?.financial?.billingMethod;
@@ -265,6 +313,74 @@ export default defineComponent({
         })
         .finally(() => {
           this.loadingSubscription = false;
+        });
+    },
+    loadSwitchablePlans() {
+      if (!this.canSwitchPlan) return;
+
+      this.loadingSwitchPlans = true;
+      this.switchPlansUnavailable = false;
+      this.$axios
+        .get('/api/billing/tiers/')
+        .then((result) => {
+          const currentPlan = this.membershipPlan;
+          const currentCurrency = currentPlan.currency.toLowerCase();
+          this.availablePlans = result.data
+            .flatMap((tier) => tier.plans || [])
+            .filter(
+              (plan) =>
+                plan.id !== currentPlan.id &&
+                plan.interval === currentPlan.interval &&
+                plan.intervalAmount === currentPlan.intervalAmount &&
+                plan.currency.toLowerCase() === currentCurrency,
+            );
+        })
+        .catch(() => {
+          this.switchPlansUnavailable = true;
+          this.availablePlans = [];
+        })
+        .finally(() => {
+          this.loadingSwitchPlans = false;
+        });
+    },
+    switchPlan(plan) {
+      this.$q
+        .dialog({
+          title: this.$t('paymentPlans.switchConfirmTitle'),
+          message: this.$t('paymentPlans.switchConfirmDescription', {
+            plan: plan.name,
+          }),
+          cancel: this.$t('button.back'),
+          persistent: true,
+        })
+        .onOk(() => {
+          this.switchingPlan = true;
+          this.$axios
+            .post('/api/billing/myplan/switch/', { planId: plan.id })
+            .then(async (result) => {
+              if (result.data.success) {
+                this.planSwitchSuccess = true;
+                await this.getProfile();
+                this.getSubscriptionInfo();
+                this.loadSwitchablePlans();
+              } else {
+                this.$q.dialog({
+                  title: this.$t('paymentPlans.switchFailed'),
+                  message: result.data.message
+                    ? this.$t(result.data.message)
+                    : this.$t('error.contactUs'),
+                });
+              }
+            })
+            .catch(() => {
+              this.$q.dialog({
+                title: this.$t('paymentPlans.switchFailed'),
+                message: this.$t('error.contactUs'),
+              });
+            })
+            .finally(() => {
+              this.switchingPlan = false;
+            });
         });
     },
     cancelPlan() {
@@ -337,6 +453,7 @@ export default defineComponent({
   async mounted() {
     await this.getProfile();
     this.getSubscriptionInfo();
+    this.loadSwitchablePlans();
   },
 });
 </script>

@@ -30,6 +30,7 @@
             <div class="row justify-center">
               <q-btn
                 @click="selectPlan"
+                :disable="disabled"
                 color="primary"
                 :label="$t('button.select')"
               />
@@ -53,6 +54,11 @@ export default defineComponent({
       required: true,
     },
     selected: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
+    disabled: {
       type: Boolean,
       required: false,
       default: false,

@@ -643,6 +643,19 @@ export default {
     subscriptionInfo: 'Abonnemangs-info',
     subscriptionUnavailable:
       'Kunde inte läsa in abonnemangsuppgifterna just nu.',
+    switchTitle: 'Byt betalningsalternativ',
+    switchDescription:
+      'Välj ett annat alternativ med samma faktureringsintervall. Din nuvarande betalmetod förblir oförändrad.',
+    switchConfirmTitle: 'Byta betalningsalternativ?',
+    switchConfirmDescription:
+      'Ditt betalningsalternativ ändras nu till {plan}. Eventuell prisskillnad inkluderas på din nästa faktura.',
+    switchSuccess: 'Betalningsalternativ uppdaterat',
+    switchSuccessDescription: 'Ditt betalningsalternativ har ändrats.',
+    switchFailed: 'Det gick inte att ändra betalningsalternativ',
+    switchUnavailable:
+      'Kunde inte läsa in alternativa betalningsalternativ just nu.',
+    switchNoOptions:
+      'Det finns inga andra betalningsalternativ med samma faktureringsintervall.',
     accountOnlyWarning:
       "Din profil är för närvarande 'endast konto'. Detta beror på att du skippade denna process förra gången. Du är välkommen att forsätta använda detta konto i sin nuvarande form, eller så kan du registrera dig för att bli medlem nedan. ",
     profileAccountOnlyWarning:
@@ -855,6 +868,26 @@ export default {
     newSubscriptionsDisabled: 'Registrering av nya medlemskap är stängda.',
     stripeError:
       'Något gick fel i kommunikationen med vår betalleverantör. Försök igen om en stund eller kontakta oss om det inte löser sig.',
+    planSwitchPlanRequired: 'Välj ett betalningsalternativ.',
+    planSwitchActiveOnly:
+      'Betalningsalternativ kan endast ändras för ett aktivt medlemskap.',
+    planSwitchSamePlan: 'Du använder redan detta betalningsalternativ.',
+    planSwitchIntervalMismatch:
+      'Du kan endast byta till ett betalningsalternativ med samma faktureringsintervall och valuta.',
+    planSwitchSubscriptionInactive:
+      'Ditt Stripe-abonnemang är inte aktivt, så betalningsalternativet kan inte ändras.',
+    planSwitchSubscriptionInvalid:
+      'Ditt abonnemang kunde inte ändras eftersom dess faktureringskonfiguration är ogiltig.',
+    planSwitchOutOfSync:
+      'Ditt betalningsalternativ är inte synkroniserat med Stripe. Kontakta oss för hjälp.',
+    planSwitchPriceMismatch:
+      'Uppgifterna för betalningsalternativet stämmer inte med Stripe. Kontakta oss för hjälp.',
+    planSwitchRecoveryPending:
+      'Ändringen av betalningsalternativet behandlas fortfarande. Försök igen om en stund eller kontakta oss för hjälp.',
+    planSwitchRecoveryFailed:
+      'Ändringen av betalningsalternativet behöver hanteras av en administratör. Kontakta oss för hjälp.',
+    planSwitchUnconfirmed:
+      'Stripe bekräftade inte ändringen av betalningsalternativ. Kontakta oss för hjälp.',
   },
   pendingInvoices: {
     title: 'Väntande fakturor',
