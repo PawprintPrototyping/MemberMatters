@@ -184,6 +184,16 @@ export default {
     login: 'Login',
     resetPassword: 'Reset Password',
     loginSuccess: 'Login Successful',
+    mfaCode: 'Authentication code',
+    mfaRequired: 'Enter the code from your authenticator app or use a passkey.',
+    verifyMfa: 'Verify',
+    usePasskey: 'Use a passkey',
+    mfaSetupTitle: 'Secure your account',
+    mfaSetupDescription:
+      'Scan this QR code with an authenticator app, then enter the generated code.',
+    mfaSetupSecret: 'Setup key',
+    enableMfa: 'Enable MFA',
+    skipMfaSetup: 'Skip for now',
     registerHere: 'Register Here',
     notAMember: 'Not a member? ',
     loginToContinue: 'Please login to continue',
@@ -202,6 +212,38 @@ export default {
     backToLogin: 'Back to login page',
     unverifiedEmail:
       'Your email address is not verified. We just sent you another link so please try again.',
+  },
+  mfaSettings: {
+    title: 'Multi-factor authentication',
+    description:
+      'Add an authenticator app, passkey, or recovery codes to protect your account.',
+    noMethods: 'No MFA methods are configured.',
+    totp: 'Authenticator app',
+    passkey: 'Passkey',
+    recoveryCodes: 'Recovery codes',
+    enableTotp: 'Set up authenticator app',
+    addPasskey: 'Add passkey',
+    passkeyName: 'Passkey name',
+    passkeyNameHint: 'For example: MacBook, iPhone, or YubiKey',
+    disableTotp: 'Disable authenticator app',
+    removePasskey: 'Remove passkey',
+    generateRecoveryCodes: 'Generate recovery codes',
+    setupDescription:
+      'Scan the QR code with your authenticator app, then enter the generated code.',
+    setupKey: 'Setup key',
+    verificationCode: 'Authentication code',
+    recoveryCodesDescription:
+      'Store these recovery codes somewhere safe. Each code can be used once.',
+    confirmDisable:
+      'Disabling your authenticator app reduces the security of your account. Continue?',
+    saved: 'MFA settings saved.',
+    failed: 'Unable to update MFA settings. Please try again.',
+    reauthenticateTitle: 'Confirm your password',
+    reauthenticateDescription:
+      'Enter your current password to continue changing MFA settings.',
+    reauthenticatePassword: 'Current password',
+    reauthenticate: 'Continue',
+    reauthenticateFailed: 'The password was incorrect. Please try again.',
   },
   changePasswordCard: {
     pageTitle: 'Change Password',

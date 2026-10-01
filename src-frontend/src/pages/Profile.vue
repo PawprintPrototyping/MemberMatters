@@ -64,6 +64,13 @@
     />
 
     <q-btn
+      color="primary"
+      :label="$t('mfaSettings.title')"
+      class="profile-action-btn q-mb-sm"
+      @click="mfaSettings = true"
+    />
+
+    <q-btn
       color="toolbar"
       :icon="icons.digitalId"
       :label="$t('digitalId.title')"
@@ -101,6 +108,10 @@
     <q-dialog v-model="changePassword">
       <change-password-card />
     </q-dialog>
+
+    <q-dialog v-model="mfaSettings">
+      <mfa-settings-card />
+    </q-dialog>
   </q-page>
 </template>
 
@@ -109,16 +120,23 @@ import ProfileForm from '@components/ProfileForm.vue';
 import icons from '../icons';
 import DigitalIdCard from '@components/DigitalIdCard.vue';
 import ChangePasswordCard from '@components/ChangePasswordCard.vue';
+import MfaSettingsCard from '@components/MfaSettingsCard.vue';
 import { mapGetters } from 'vuex';
 
 export default {
   name: 'ProfilePage',
-  components: { ChangePasswordCard, DigitalIdCard, ProfileForm },
+  components: {
+    ChangePasswordCard,
+    DigitalIdCard,
+    MfaSettingsCard,
+    ProfileForm,
+  },
   data() {
     return {
       text: '',
       digitalId: false,
       changePassword: false,
+      mfaSettings: false,
     };
   },
   computed: {

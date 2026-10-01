@@ -20,6 +20,11 @@ CONSTANCE_CONFIG = {
         "",
         "A site wide banner that can display useful information. Leave empty to turn off.",
     ),
+    "ENFORCE_MFA_FOR_ADMIN_USERS": (
+        False,
+        "Require completed MFA for all staff users before allowing portal or Django admin access.  "
+        "IMPORTANT: Make sure MFA is configured for your user before enabling this or you will be locked out!",
+    ),
     # Email config
     "EMAIL_SYSADMIN": (
         "example@example.com",
@@ -603,6 +608,7 @@ CONSTANCE_CONFIG_FIELDSETS = OrderedDict(
                 "ENABLE_RECENT_SWIPES_PAGE",
             ),
         ),
+        ("Security", ("ENFORCE_MFA_FOR_ADMIN_USERS",)),
         ("Stats Settings", ("ENABLE_STATS_PAGE", "STATS_MAX_DAYS", "METRICS_API_KEY")),
         (
             "Sentry Error Reporting",

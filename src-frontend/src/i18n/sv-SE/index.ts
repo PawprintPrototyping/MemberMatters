@@ -177,6 +177,17 @@ export default {
     login: 'Login',
     resetPassword: 'Återställ lösenord',
     loginSuccess: 'Inloggning lyckades',
+    mfaCode: 'Autentiseringskod',
+    mfaRequired:
+      'Ange koden från din autentiseringsapp eller använd en lösenordsnyckel.',
+    verifyMfa: 'Verifiera',
+    usePasskey: 'Använd lösenordsnyckel',
+    mfaSetupTitle: 'Skydda ditt konto',
+    mfaSetupDescription:
+      'Skanna QR-koden med en autentiseringsapp och ange sedan den genererade koden.',
+    mfaSetupSecret: 'Installationsnyckel',
+    enableMfa: 'Aktivera MFA',
+    skipMfaSetup: 'Hoppa över tills vidare',
     registerHere: 'Registrera Här',
     notAMember: 'Inte medlem än? ',
     loginToContinue: 'Logga in för att fortsätta',
@@ -195,6 +206,38 @@ export default {
     backToLogin: 'Tillbaka till sida för inloggning',
     unverifiedEmail:
       'Din email är inte verifierad. Vi skickade precies en ny länk via email så försök verifiera igen.',
+  },
+  mfaSettings: {
+    title: 'Multifaktorautentisering',
+    description:
+      'Lägg till en autentiseringsapp, lösenordsnyckel eller återställningskoder för att skydda ditt konto.',
+    noMethods: 'Inga MFA-metoder är konfigurerade.',
+    totp: 'Autentiseringsapp',
+    passkey: 'Lösenordsnyckel',
+    recoveryCodes: 'Återställningskoder',
+    enableTotp: 'Konfigurera autentiseringsapp',
+    addPasskey: 'Lägg till lösenordsnyckel',
+    passkeyName: 'Namn på lösenordsnyckel',
+    passkeyNameHint: 'Till exempel: MacBook, iPhone eller YubiKey',
+    disableTotp: 'Inaktivera autentiseringsapp',
+    removePasskey: 'Ta bort lösenordsnyckel',
+    generateRecoveryCodes: 'Skapa återställningskoder',
+    setupDescription:
+      'Skanna QR-koden med din autentiseringsapp och ange sedan den genererade koden.',
+    setupKey: 'Installationsnyckel',
+    verificationCode: 'Autentiseringskod',
+    recoveryCodesDescription:
+      'Förvara återställningskoderna säkert. Varje kod kan användas en gång.',
+    confirmDisable:
+      'Att inaktivera autentiseringsappen minskar kontots säkerhet. Vill du fortsätta?',
+    saved: 'MFA-inställningarna har sparats.',
+    failed: 'MFA-inställningarna kunde inte uppdateras. Försök igen.',
+    reauthenticateTitle: 'Bekräfta ditt lösenord',
+    reauthenticateDescription:
+      'Ange ditt nuvarande lösenord för att fortsätta ändra MFA-inställningar.',
+    reauthenticatePassword: 'Nuvarande lösenord',
+    reauthenticate: 'Fortsätt',
+    reauthenticateFailed: 'Lösenordet var felaktigt. Försök igen.',
   },
   changePasswordCard: {
     pageTitle: 'Byt lösenord',
