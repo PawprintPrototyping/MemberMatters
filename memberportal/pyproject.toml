@@ -27,7 +27,7 @@ dependencies = [
     "djangorestframework>=3.16,<4",
     "djangorestframework-simplejwt>=5.5,<6",
     "django-csp>=4,<5",
-    "sentry-sdk==2.69.2",
+    "sentry-sdk==2.70.0",
     "mysqlclient>=2.2.4,<2.4.0",
     "mailchimp-marketing",
     "channels>=4,<5",
@@ -59,7 +59,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "coverage==7.16.1",
+    "coverage==7.16.2",
     "pre-commit==4.6.2",
 ]
 
