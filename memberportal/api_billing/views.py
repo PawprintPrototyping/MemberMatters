@@ -11,7 +11,7 @@ from profile.models import (
     SubscriptionState,
 )
 
-# from api_admin_tools.models import
+from api_admin_tools.models import MemberTier, PaymentPlan
 from .models import ProcessedStripeEvent
 
 from rest_framework import status, permissions
@@ -505,13 +505,13 @@ class PaymentPlanSignup(StripeAPIView):
             if error_response is not None:
                 return error_response
 
-            if new_subscription.status == SubcriptionState.ACTIVE:
+            if new_subscription.status == SubscriptionState.ACTIVE:
                 locked_profile.stripe_subscription_id = new_subscription.id
                 locked_profile.membership_plan = new_plan
                 locked_profile.subscription_status = (
                     SubscriptionState.PENDING
                     if billing_method == "invoice"
-                    else SubscriptionState.INACTIVE
+                    else SubscriptionState.ACTIVE
                 )
                 locked_profile.billing_method = billing_method
                 locked_profile.pending_signup_email_sent = False

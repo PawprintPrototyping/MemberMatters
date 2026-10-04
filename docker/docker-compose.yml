@@ -14,7 +14,7 @@ services:
       - mm-postgres-volume:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U membermatters"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
       retries: 5
 
@@ -35,16 +35,18 @@ services:
       MM_ALLOWED_HOSTS: "${MM_ALLOWED_HOSTS}"
       MM_USE_POSTGRES: True
       MM_REDIS_HOST: *redis-url
+      # Set to a secure value in production using this snippet:
+      # python -c "import secrets; print(secrets.token_urlsafe())"
+      HEALTH_CHECK_SECRET: "${HEALTH_CHECK_SECRET:-dev}"
     ports:
       - "8000:8000"
     depends_on:
       - mm-postgres
       - mm-redis
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000"]
-      interval: 5s
-      timeout: 5s
-      retries: 15
+      test: ["CMD", "python", "manage.py", "health_check", "health_check-node", "mm-webapp:8000"]
+      interval: 30s
+      timeout: 10s
 
   # MemberMatters Celery Worker
   mm-celery-worker:

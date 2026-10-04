@@ -97,6 +97,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.humanize",
+    "health_check",
     "oidc_provider",
     "channels",
     "profile",

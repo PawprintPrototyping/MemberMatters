@@ -30,7 +30,10 @@
         :icon="icons.plans"
         :done="step > 1"
       >
-        <template v-if="tiers.length === 0">
+        <q-banner v-if="tierLoadFailure" class="bg-negative text-white q-my-md">
+          {{ $t('error.requestFailed') }}
+        </q-banner>
+        <template v-else-if="tiers.length === 0">
           <div class="text-center text-h6">
             {{ $t('tiers.noTiers') }}
           </div>
@@ -337,6 +340,7 @@ export default defineComponent({
     return {
       step: 1,
       tiers: [],
+      tierLoadFailure: false,
       selectedTier: {},
       selectedPlan: {},
       disableFinish: false,
@@ -376,13 +380,19 @@ export default defineComponent({
   methods: {
     ...mapActions('profile', ['getProfile']),
     getTiers() {
-      this.$axios.get('/api/billing/tiers/').then((response) => {
-        this.tiers = response.data;
-        // Only one membership plan to choose — skip to the payment plan step.
-        if (this.tiers.length === 1) {
-          this.selectedTierEvent(this.tiers[0]);
-        }
-      });
+      this.tierLoadFailure = false;
+      this.$axios
+        .get('/api/billing/tiers/')
+        .then((response) => {
+          this.tiers = response.data;
+          // Only one membership plan to choose — skip to the payment plan step.
+          if (this.tiers.length === 1) {
+            this.selectedTierEvent(this.tiers[0]);
+          }
+        })
+        .catch(() => {
+          this.tierLoadFailure = true;
+        });
     },
     skipSignup() {
       this.$axios

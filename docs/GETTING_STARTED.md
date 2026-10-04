@@ -30,6 +30,8 @@ MM_ALLOWED_HOSTS=portal.example.org,www.example.org
 >   long random value (e.g. `python -c "import secrets; print(secrets.token_urlsafe(64))"`),
 >   never reuse the bundled dev key, and treat it like a database password — anyone who
 >   has it can forge a session for any user, including admins.
+> - `HEALTH_CHECK_SECRET` should be a secured string and optional for connecting as a
+    liveness indicator.  **Do NOT** use the `MM_SECRET_KEY` value.  [See docs](https://codingjoe.dev/django-health-check/install/#security)
 > - `MM_ALLOWED_HOSTS` is a comma-separated list of the public hostnames your portal
 >   answers on. Setting it narrows the surface for Host-header attacks (cache poisoning,
 >   spoofed password-reset links).
