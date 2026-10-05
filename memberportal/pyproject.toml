@@ -27,8 +27,8 @@ dependencies = [
     "djangorestframework>=3.16,<4",
     "djangorestframework-simplejwt>=5.5,<6",
     "django-csp>=4,<5",
-    "sentry-sdk==2.69.1",
-    "mysqlclient~=2.2.4",
+    "sentry-sdk==2.70.0",
+    "mysqlclient>=2.2.4,<2.4.0",
     "mailchimp-marketing",
     "channels>=4,<5",
     "daphne>=4,<5",
@@ -56,11 +56,12 @@ dependencies = [
     "pillow>=12,<13",
     "docuseal~=1.0.9",
     "django-allauth[headless,mfa]>=65,<66",
+    "django-health-check[psutil]>=4.8.0",
 ]
 
 [dependency-groups]
 dev = [
-    "coverage==7.16.1",
+    "coverage==7.16.2",
     "pre-commit==4.6.2",
 ]
 

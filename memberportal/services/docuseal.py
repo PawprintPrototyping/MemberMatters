@@ -62,7 +62,7 @@ def create_submission_for_subscription(profile):
         logger.info("Submitting to Docuseal with body:\n{}".format(body))
 
         response = requests.post(
-            url=config.DOCUSEAL_URL + "/api/submissions",
+            url=config.DOCUSEAL_URL.rstrip("/") + "/api/submissions",
             headers={
                 "X-Auth-Token": config.DOCUSEAL_API_KEY,
                 "Content-Type": "application/json",
@@ -91,7 +91,7 @@ def create_submission_for_subscription(profile):
         logger.debug("Got response:\n{}".format(res))
     except Exception as ex:
         # holy overly-broad exception handlers batman!
-        logger.error("Submission creation failed!\n{}".format(ex))
+        logger.exception("Submission creation failed!")
         raise ex
 
     logger.debug(
@@ -110,14 +110,19 @@ def get_docuseal_submission(profile, submission_id=None):
     logger.debug("Requesting {}".format("/api/submissions/" + str(submission_id)))
     try:
         response = requests.get(
-            url=config.DOCUSEAL_URL + "/api/submissions/" + str(submission_id),
+            url=(
+                config.DOCUSEAL_URL.rstrip("/")
+                + "/api/submissions/"
+                + str(submission_id)
+            ),
             headers={"X-Auth-Token": config.DOCUSEAL_API_KEY},
         )
-        logger.debug("Got response:\n{}".format(response.json()))
+        response.raise_for_status()
         state = response.json()
+        logger.debug("Got response:\n{}".format(state))
     except Exception as ex:
         # holy overly-broad exception handlers batman!
-        logger.error("Finding submission state failed!\n{}".format(ex))
+        logger.exception("Finding submission state failed!")
         raise ex
 
     return state
