@@ -40,6 +40,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 # this allows the frontend dev server to talk to the dev server
 CORS_ALLOW_ALL_ORIGINS = True
 
+# Always use behind a reverse proxy.  When True, prefer `X-Forwarded-Host`
+# header before Host header.  True since we are using nginx in container.
+USE_X_FORWARDED_HOST = True
+
 # Canonical label plus the hardening switch. An unset MM_ENV means a local
 # dev run; a set-but-unrecognised value is a misconfiguration and must not
 # fall back to the permissive defaults above.
@@ -82,6 +86,9 @@ if IS_PRODUCTION:
             f"MM_ALLOWED_HOSTS must be set when MM_ENV={ENVIRONMENT}."
         )
     ALLOWED_HOSTS = [h.strip() for h in allowed_hosts_env.split(",") if h.strip()]
+
+    # Allow explicit origins for complicated reverse proxy configurations.
+    CSRF_TRUSTED_ORIGINS = [h.strip() for h in os.environ.get("MM_CSRF_TRUSTED_ORIGINS").split(",") if h.strip()]
 
 # Application definition
 INSTALLED_APPS = [
