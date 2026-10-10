@@ -88,7 +88,11 @@ if IS_PRODUCTION:
     ALLOWED_HOSTS = [h.strip() for h in allowed_hosts_env.split(",") if h.strip()]
 
     # Allow explicit origins for complicated reverse proxy configurations.
-    CSRF_TRUSTED_ORIGINS = [h.strip() for h in os.environ.get("MM_CSRF_TRUSTED_ORIGINS").split(",") if h.strip()]
+    CSRF_TRUSTED_ORIGINS = [
+        h.strip()
+        for h in os.environ.get("MM_CSRF_TRUSTED_ORIGINS").split(",")
+        if h.strip()
+    ]
 
 # Application definition
 INSTALLED_APPS = [
