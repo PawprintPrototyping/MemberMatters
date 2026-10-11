@@ -1,0 +1,52 @@
+name: Build Docker Image (Pawprint Staging)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "staging"
+
+permissions: {}
+
+# Serialised, not cancelled: two overlapping deploys would run `compose up` and
+# `image prune -a -f` against the same host.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    uses: $/.github/workflows/_build-docker.yml
+    permissions:
+      contents: read
+      packages: write # pushes the built image to GHCR
+    with:
+      platforms: linux/amd64,linux/arm64
+      push: true
+      tags: ghcr.io/pawprintprototyping/membermatters:staging,ghcr.io/pawprintprototyping/membermatters:${{ github.sha }}
+      upload-sourcemaps: true
+      glitchtip-org: pawprint-prototyping
+      glitchtip-project: membermatters-frontend
+      glitchtip-url: ${{ vars.GLITCHTIP_URL }}
+    secrets:
+      GLITCHTIP_AUTH_TOKEN: ${{ secrets.GLITCHTIP_AUTH_TOKEN }}
+
+  deploy:
+    name: Deploy to staging
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Deploy to server
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /datadrive/compose/membermatters
+            docker compose pull mm-staging
+            docker compose up -d mm-staging
+            docker image prune -a -f
