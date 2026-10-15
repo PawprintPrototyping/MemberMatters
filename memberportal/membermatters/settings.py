@@ -90,7 +90,7 @@ if IS_PRODUCTION:
     # Allow explicit origins for complicated reverse proxy configurations.
     CSRF_TRUSTED_ORIGINS = [
         h.strip()
-        for h in os.environ.get("MM_CSRF_TRUSTED_ORIGIN", "").split(",")
+        for h in os.environ.get("MM_CSRF_TRUSTED_ORIGINS", "").split(",")
         if h.strip()
     ]
 
