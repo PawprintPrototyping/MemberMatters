@@ -174,7 +174,14 @@ if IS_PRODUCTION:
                 # Via local Redis
                 "BACKEND": "channels_redis.core.RedisChannelLayer",
                 "CONFIG": {
-                    "hosts": [os.getenv("MM_REDIS_HOST")],
+                    "hosts": [
+                        {
+                            "address": os.getenv("MM_REDIS_HOST"),
+                            # redis-py 8 defaults to a 5s read timeout, which races
+                            # channels_redis's 5s BZPOPMIN. Keep this > brpop_timeout.
+                            "socket_timeout": 30,
+                        }
+                    ],
                 },
             },
         }
