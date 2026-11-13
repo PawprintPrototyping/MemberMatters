@@ -27,18 +27,27 @@ export default defineComponent({
     };
   },
   mounted() {
-    this.$axios
-      .post('/api/logout/')
-      .then(() => {
+    const logoutRequests = [this.$axios.post('/api/logout/')];
+    if (this.$q.platform.is.capacitor) {
+      logoutRequests.push(
+        this.$axios.delete('/_allauth/app/v1/auth/session', {
+          headers: { Accept: 'application/json' },
+        }),
+      );
+    }
+
+    Promise.allSettled(logoutRequests)
+      .then((responses) => {
+        const failed = responses.find(
+          (response) => response.status === 'rejected',
+        );
+        if (failed && failed.reason?.response?.status !== 401) {
+          throw failed.reason;
+        }
         this.completeLogout();
       })
-      .catch((error) => {
-        if (error.response.status === 401) {
-          this.completeLogout();
-        } else {
-          this.error = true;
-          throw error;
-        }
+      .catch(() => {
+        this.error = true;
       });
   },
   methods: {

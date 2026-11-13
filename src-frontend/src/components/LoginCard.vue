@@ -11,7 +11,7 @@
     </template>
 
     <template v-else>
-      <q-card v-if="!resetToken">
+      <q-card v-if="!resetToken && !mfaSetupRequired">
         <q-img
           v-if="images.siteLogo"
           fit="contain"
@@ -41,6 +41,7 @@
             />
 
             <q-input
+              v-if="!mfaRequired"
               v-model="password"
               id="password-field"
               filled
@@ -53,6 +54,22 @@
                   validateNotEmpty(val) || $t('validation.invalidPassword'),
               ]"
             />
+
+            <q-input
+              v-if="mfaRequired"
+              v-model="mfaCode"
+              id="mfa-code-field"
+              filled
+              autofocus
+              autocomplete="one-time-code"
+              inputmode="numeric"
+              :label="$t('loginCard.mfaCode')"
+              :rules="[(val) => validateNotEmpty(val)]"
+            />
+
+            <q-banner v-if="mfaRequired" class="bg-info text-white">
+              {{ $t('loginCard.mfaRequired') }}
+            </q-banner>
 
             <q-banner v-if="loginComplete" class="bg-positive text-white">
               {{ $t('loginCard.loginSuccess') }}
@@ -92,13 +109,93 @@
                 @click="reset.prompt = true"
               />
               <q-btn
-                :label="$t('loginCard.login')"
-                type="submit"
+                v-if="mfaRequired && mfaTypes.includes('webauthn')"
+                :label="$t('loginCard.usePasskey')"
+                type="button"
+                color="primary"
+                flat
+                :loading="buttonLoading"
+                @click="loginWithPasskey"
+              />
+              <q-btn
+                v-if="!mfaRequired && !discourseSsoData"
+                :label="$t('loginCard.usePasskey')"
+                type="button"
+                color="primary"
+                flat
+                :loading="buttonLoading"
+                @click="loginWithPasskey"
+              />
+              <q-btn
+                :label="
+                  mfaRequired
+                    ? $t('loginCard.verifyMfa')
+                    : $t('loginCard.login')
+                "
+                :type="mfaRequired ? 'submit' : 'submit'"
                 color="primary-btn"
                 :loading="buttonLoading"
               />
             </div>
           </q-form>
+        </q-card-section>
+      </q-card>
+
+      <q-card v-else-if="mfaSetupRequired" class="login-card">
+        <h6 class="q-ma-none q-pa-md">
+          {{ $t('loginCard.mfaSetupTitle') }}
+        </h6>
+        <q-card-section>
+          <p>{{ $t('loginCard.mfaSetupDescription') }}</p>
+          <q-img
+            v-if="totpQrCode"
+            :src="totpQrCode"
+            fit="contain"
+            style="max-width: 220px"
+            class="q-mb-md"
+          />
+          <p v-if="totpSecret" class="text-caption">
+            {{ $t('loginCard.mfaSetupSecret') }}: <code>{{ totpSecret }}</code>
+          </p>
+          <q-input
+            v-model="mfaSetupCode"
+            filled
+            autocomplete="one-time-code"
+            inputmode="numeric"
+            :label="$t('loginCard.mfaCode')"
+          />
+          <q-banner v-if="loginError" class="bg-negative text-white q-mt-md">
+            {{ $t('error.requestFailed') }}
+          </q-banner>
+          <q-input
+            v-model="passkeyName"
+            filled
+            :label="$t('mfaSettings.passkeyName')"
+            :hint="$t('mfaSettings.passkeyNameHint')"
+          />
+          <div class="row q-mt-md">
+            <q-space />
+            <q-btn
+              :label="$t('loginCard.skipMfaSetup')"
+              flat
+              color="primary"
+              @click="skipMfaSetup"
+            />
+            <q-btn
+              :label="$t('loginCard.usePasskey')"
+              flat
+              color="primary"
+              :loading="buttonLoading"
+              :disable="!passkeyName.trim()"
+              @click="addPasskey"
+            />
+            <q-btn
+              :label="$t('loginCard.enableMfa')"
+              color="primary-btn"
+              :loading="buttonLoading"
+              @click="activateMfa"
+            />
+          </div>
         </q-card-section>
       </q-card>
 
@@ -233,6 +330,125 @@ import formMixin from '../mixins/formMixin';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { LocationQuery } from 'vue-router';
 import { defineComponent } from 'vue';
+import QRCode from 'qrcode';
+
+function decodeBase64Url(value: string): ArrayBuffer {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+  const bytes = atob(padded);
+  return Uint8Array.from(bytes, (char) => char.charCodeAt(0)).buffer;
+}
+
+function encodeBase64Url(value: ArrayBuffer | null): string | null {
+  if (!value) return null;
+  const bytes = new Uint8Array(value);
+  let binary = '';
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+type WebAuthnCredentialDescriptorJSON = {
+  id: string;
+  transports?: string[];
+};
+
+type WebAuthnRequestOptionsJSON = {
+  challenge: string;
+  allowCredentials?: WebAuthnCredentialDescriptorJSON[];
+  allow_credentials?: WebAuthnCredentialDescriptorJSON[];
+  userVerification?: string;
+  user_verification?: string;
+  [key: string]: unknown;
+};
+
+function parseWebAuthnRequestOptions(
+  options: WebAuthnRequestOptionsJSON & {
+    publicKey?: WebAuthnRequestOptionsJSON;
+  },
+): PublicKeyCredentialRequestOptions {
+  const publicKey = options.publicKey || options;
+  const parsed = { ...publicKey };
+  parsed.challenge = decodeBase64Url(parsed.challenge);
+  const credentials = parsed.allowCredentials || parsed.allow_credentials;
+  if (credentials) {
+    parsed.allowCredentials = credentials.map((credential) => ({
+      ...credential,
+      id: decodeBase64Url(credential.id),
+      transports: credential.transports as AuthenticatorTransport[] | undefined,
+    }));
+    delete parsed.allow_credentials;
+  }
+  if (parsed.user_verification && !parsed.userVerification) {
+    parsed.userVerification = parsed.user_verification;
+  }
+  delete parsed.user_verification;
+  return parsed as PublicKeyCredentialRequestOptions;
+}
+
+function serializeWebAuthnCredential(
+  credential: PublicKeyCredential,
+): Record<string, unknown> {
+  const response = credential.response as AuthenticatorAssertionResponse;
+  return {
+    id: credential.id,
+    rawId: encodeBase64Url(credential.rawId),
+    type: credential.type,
+    response: {
+      clientDataJSON: encodeBase64Url(response.clientDataJSON),
+      authenticatorData: encodeBase64Url(response.authenticatorData),
+      signature: encodeBase64Url(response.signature),
+      userHandle: encodeBase64Url(response.userHandle),
+    },
+  };
+}
+
+function parseWebAuthnCreationOptions(
+  options: WebAuthnRequestOptionsJSON & {
+    publicKey?: WebAuthnRequestOptionsJSON;
+    user: { id: string; [key: string]: unknown };
+    excludeCredentials?: WebAuthnCredentialDescriptorJSON[];
+    exclude_credentials?: WebAuthnCredentialDescriptorJSON[];
+  },
+): PublicKeyCredentialCreationOptions {
+  const publicKey = options.publicKey || options;
+  const parsed = { ...publicKey };
+  parsed.challenge = decodeBase64Url(parsed.challenge);
+  parsed.user = {
+    ...parsed.user,
+    id: decodeBase64Url(parsed.user.id),
+  } as unknown as typeof parsed.user;
+  const credentials = parsed.excludeCredentials || parsed.exclude_credentials;
+  if (credentials) {
+    parsed.excludeCredentials = credentials.map((credential) => ({
+      ...credential,
+      id: decodeBase64Url(credential.id),
+      transports: credential.transports as AuthenticatorTransport[] | undefined,
+    }));
+    delete parsed.exclude_credentials;
+  }
+  return parsed as unknown as PublicKeyCredentialCreationOptions;
+}
+
+function serializeWebAuthnCreationCredential(
+  credential: PublicKeyCredential,
+): Record<string, unknown> {
+  const response = credential.response as AuthenticatorAttestationResponse;
+  return {
+    id: credential.id,
+    rawId: encodeBase64Url(credential.rawId),
+    type: credential.type,
+    response: {
+      clientDataJSON: encodeBase64Url(response.clientDataJSON),
+      attestationObject: encodeBase64Url(response.attestationObject),
+      transports: response.getTransports?.(),
+    },
+  };
+}
 
 export default defineComponent({
   name: 'LoginCard',
@@ -255,6 +471,15 @@ export default defineComponent({
       loginFailed: false,
       loginError: false,
       loginComplete: false,
+      mfaRequired: false,
+      mfaCode: '',
+      mfaTypes: [] as string[],
+      mfaSetupRequired: false,
+      mfaSetupCode: '',
+      passkeyName: '',
+      totpSecret: '',
+      totpQrCode: '',
+      allauthSessionToken: '',
       unverifiedEmail: false,
       buttonLoading: false,
       discourseSsoData: null as LocationQuery | null,
@@ -328,7 +553,7 @@ export default defineComponent({
       this.loginError = false;
 
       if (this.discourseSsoData) {
-        this.login();
+        this.completeDiscourseSso();
         return;
       }
 
@@ -359,7 +584,22 @@ export default defineComponent({
       this.password = null;
     },
     onSubmit() {
-      this.login();
+      if (this.mfaRequired) {
+        this.completeMfa();
+      } else {
+        this.login();
+      }
+    },
+    async completeDiscourseSso() {
+      try {
+        const response = await this.$axios.post('/api/login/', {
+          sso: this.discourseSsoData,
+        });
+        this.loginComplete = true;
+        window.location = response.data.redirect;
+      } catch {
+        this.loginError = true;
+      }
     },
     /**
      * This sends the login API request to log the user in.
@@ -377,82 +617,237 @@ export default defineComponent({
             sso: this.discourseSsoData,
           })
           .then((response) => {
-            this.loginFailed = false;
-            this.loginError = false;
             this.loginComplete = true;
-
             window.location = response.data.redirect;
           })
           .catch((error) => {
-            if (error.response.status === 401) {
-              this.loginFailed = true;
+            if (
+              error.response?.status === 403 &&
+              error.response.data?.code === 'mfa_required'
+            ) {
               this.unverifiedEmail = false;
-            } else if (error.response.status === 403) {
-              this.unverifiedEmail = true;
-              this.loginFailed = false;
-              throw error;
-            } else {
-              this.loginError = true;
-              this.unverifiedEmail = false;
-              throw error;
-            }
-          })
-          .finally(() => {
-            this.buttonLoading = false;
-          });
-      } else if (this.$q.platform.is.capacitor) {
-        this.$axios
-          .post('/api/token/obtain/', {
-            email: this.email,
-            password: this.password,
-          })
-          .then((response) => {
-            this.setAuth(response.data);
-            this.redirectLoggedIn();
-          })
-          .catch((error) => {
-            if (error.response.status === 401) {
-              this.loginFailed = true;
-              this.unverifiedEmail = false;
-            } else if (error.response.status === 403) {
-              this.unverifiedEmail = true;
-              this.loginFailed = false;
-              throw error;
-            } else {
-              this.loginError = true;
-              this.unverifiedEmail = false;
-              throw error;
-            }
-          })
-          .finally(() => {
-            this.buttonLoading = false;
-          });
-      } else {
-        this.$axios
-          .post('/api/login/', {
-            email: this.email,
-            password: this.password,
-          })
-          .then(() => {
-            this.redirectLoggedIn();
-          })
-          .catch((error) => {
-            if (error.response?.status === 401) {
+              this.loginWithAllauth();
+            } else if (error.response?.status === 401) {
               this.loginFailed = true;
               this.unverifiedEmail = false;
             } else if (error.response?.status === 403) {
               this.unverifiedEmail = true;
               this.loginFailed = false;
-              throw error;
             } else {
               this.loginError = true;
               this.unverifiedEmail = false;
-              throw error;
             }
           })
           .finally(() => {
             this.buttonLoading = false;
           });
+        return;
+      }
+
+      this.loginWithAllauth();
+    },
+    allauthClient() {
+      return this.$q.platform.is.capacitor ? 'app' : 'browser';
+    },
+    allauthPath(path) {
+      return `/_allauth/${this.allauthClient()}/v1${path}`;
+    },
+    allauthHeaders() {
+      const headers: Record<string, string> = { Accept: 'application/json' };
+      if (this.allauthClient() === 'app' && this.allauthSessionToken) {
+        headers['X-Session-Token'] = this.allauthSessionToken;
+      }
+      return headers;
+    },
+    saveAllauthTokens(data) {
+      const meta = data?.meta || {};
+      if (meta.session_token) this.allauthSessionToken = meta.session_token;
+      if (meta.access_token) {
+        this.setAuth({
+          access: meta.access_token,
+          refresh: meta.refresh_token || '',
+        });
+      }
+    },
+    setMfaChallenge(data) {
+      const flow = (data?.data?.flows || []).find(
+        (candidate) =>
+          candidate.id === 'mfa_authenticate' && candidate.is_pending,
+      );
+      if (!flow) return false;
+
+      this.mfaRequired = true;
+      this.mfaCode = '';
+      this.mfaTypes = flow.types || ['totp', 'recovery_codes'];
+      return true;
+    },
+    async finishAllauthLogin() {
+      try {
+        const response = await this.$axios.get(
+          this.allauthPath('/account/authenticators'),
+          { headers: this.allauthHeaders() },
+        );
+        this.saveAllauthTokens(response.data);
+        if (response.data.data?.length === 0) {
+          const setupResponse = await this.$axios
+            .get(this.allauthPath('/account/authenticators/totp'), {
+              headers: this.allauthHeaders(),
+            })
+            .catch((error) => error.response);
+          this.saveAllauthTokens(setupResponse?.data);
+          const meta = setupResponse?.data?.meta || {};
+          if (meta.secret && meta.totp_url) {
+            this.totpSecret = meta.secret;
+            this.totpQrCode = await QRCode.toDataURL(meta.totp_url);
+            this.mfaSetupRequired = true;
+            return;
+          }
+        }
+      } catch {
+        // A failed status check should not discard a successful login.
+      }
+      this.redirectLoggedIn();
+    },
+    skipMfaSetup() {
+      this.mfaSetupRequired = false;
+      this.redirectLoggedIn();
+    },
+    async activateMfa() {
+      this.buttonLoading = true;
+      this.loginError = false;
+      try {
+        await this.$axios.post(
+          this.allauthPath('/account/authenticators/totp'),
+          { code: this.mfaSetupCode },
+          { headers: this.allauthHeaders() },
+        );
+        this.mfaSetupRequired = false;
+        this.mfaSetupCode = '';
+        this.redirectLoggedIn();
+      } catch {
+        this.loginError = true;
+      } finally {
+        this.buttonLoading = false;
+      }
+    },
+    async addPasskey() {
+      this.buttonLoading = true;
+      this.loginError = false;
+      try {
+        const optionsResponse = await this.$axios.get(
+          `${this.allauthPath('/account/authenticators/webauthn')}?passwordless`,
+          { headers: this.allauthHeaders() },
+        );
+        const creationOptions = optionsResponse.data.data?.creation_options;
+        const credential = await navigator.credentials.create({
+          publicKey: parseWebAuthnCreationOptions(creationOptions),
+        });
+        if (!credential) throw new Error('Passkey registration was cancelled.');
+        await this.$axios.post(
+          this.allauthPath('/account/authenticators/webauthn'),
+          {
+            name: this.passkeyName.trim(),
+            passwordless: true,
+            credential: serializeWebAuthnCreationCredential(
+              credential as PublicKeyCredential,
+            ),
+          },
+          { headers: this.allauthHeaders() },
+        );
+        this.passkeyName = '';
+        this.mfaSetupRequired = false;
+        this.finishAllauthLogin();
+      } catch {
+        this.loginError = true;
+      } finally {
+        this.buttonLoading = false;
+      }
+    },
+    async loginWithAllauth() {
+      try {
+        const response = await this.$axios.post(
+          this.allauthPath('/auth/login'),
+          { email: this.email, password: this.password },
+          { headers: this.allauthHeaders() },
+        );
+        this.saveAllauthTokens(response.data);
+        if (response.data.meta?.is_authenticated) {
+          this.finishAllauthLogin();
+        } else if (!this.setMfaChallenge(response.data)) {
+          this.loginError = true;
+        }
+      } catch (error) {
+        this.saveAllauthTokens(error.response?.data);
+        if (!this.setMfaChallenge(error.response?.data)) {
+          if (error.response?.status === 401) {
+            this.loginFailed = true;
+          } else {
+            this.loginError = true;
+          }
+          this.unverifiedEmail = false;
+        }
+      } finally {
+        this.buttonLoading = false;
+      }
+    },
+    async completeMfa() {
+      this.loginFailed = false;
+      this.loginError = false;
+      this.buttonLoading = true;
+      try {
+        const response = await this.$axios.post(
+          this.allauthPath('/auth/2fa/authenticate'),
+          { code: this.mfaCode },
+          { headers: this.allauthHeaders() },
+        );
+        this.saveAllauthTokens(response.data);
+        this.mfaRequired = false;
+        this.finishAllauthLogin();
+      } catch (error) {
+        this.loginFailed = error.response?.status === 400;
+        this.loginError = !this.loginFailed;
+      } finally {
+        this.buttonLoading = false;
+      }
+    },
+    async loginWithPasskey() {
+      this.loginFailed = false;
+      this.loginError = false;
+      this.buttonLoading = true;
+      const loginPath = this.mfaRequired
+        ? '/auth/webauthn/authenticate'
+        : '/auth/webauthn/login';
+      try {
+        const optionsResponse = await this.$axios.get(
+          this.allauthPath(loginPath),
+          { headers: this.allauthHeaders() },
+        );
+        this.saveAllauthTokens(optionsResponse.data);
+        const requestOptions =
+          optionsResponse.data.data?.request_options ||
+          optionsResponse.data.data?.requestOptions;
+        const credential = await navigator.credentials.get({
+          publicKey: parseWebAuthnRequestOptions(requestOptions),
+        });
+        if (!credential)
+          throw new Error('Passkey authentication was cancelled.');
+
+        const response = await this.$axios.post(
+          this.allauthPath(loginPath),
+          {
+            credential: serializeWebAuthnCredential(
+              credential as PublicKeyCredential,
+            ),
+          },
+          { headers: this.allauthHeaders() },
+        );
+        this.saveAllauthTokens(response.data);
+        this.mfaRequired = false;
+        this.finishAllauthLogin();
+      } catch {
+        this.loginError = true;
+      } finally {
+        this.buttonLoading = false;
       }
     },
     /**
