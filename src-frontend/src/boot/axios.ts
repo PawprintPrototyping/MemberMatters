@@ -34,11 +34,11 @@ export default boot(({ app }) => {
       return response;
     },
     function (error) {
-      const isAllauthRequest = error.config?.url?.includes('/_allauth/');
+      const isAllauthRequest = () => error.config?.url?.includes('/_allauth/');
       if (
         error.response &&
         error.response.status === 401 &&
-        !isAllauthRequest
+        !isAllauthRequest()
       ) {
         store.commit('auth/setAuth', {});
         return Promise.reject(error);
