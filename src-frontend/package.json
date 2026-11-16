@@ -15,6 +15,7 @@
     "build:ios": "API_BASE_URL=https://portal.brisbanemaker.space quasar build -m capacitor -T ios --ide",
     "build:android": "quasar build -m capacitor -T android --ide",
     "build:electron": "quasar build -m electron",
+    "test:membership-plan": "node --test tests/membershipPlan.test.mjs",
     "format": "prettier --write \"**/*.{js,ts,vue,scss,html,md,json}\" --ignore-path .gitignore",
     "lint": "npm run format && eslint --cache --fix --ext .js,.vue,.ts ./"
   },

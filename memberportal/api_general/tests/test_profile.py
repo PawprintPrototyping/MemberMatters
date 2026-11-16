@@ -61,3 +61,14 @@ class ProfileDetailTests(TestCase):
             url="https://docuseal.example/api/submissions/1",
             headers={"X-Auth-Token": "docuseal-token"},
         )
+
+    def test_active_profile_without_membership_plan_remains_managed(self):
+        profile, client = self.make_profile()
+
+        response = client.get("/api/profile/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json()["signupStage"], "managed")
+        self.assertIsNone(response.json()["financial"]["membershipPlan"])
+        self.assertIsNone(response.json()["financial"]["membershipTier"])
+        self.assertEqual(profile.state, "active")

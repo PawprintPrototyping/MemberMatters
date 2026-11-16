@@ -14,7 +14,11 @@
     </template>
 
     <template
-      v-else-if="['needs_plan', 'account_only', 'lapsed'].includes(signupStage)"
+      v-else-if="
+        !membershipPlan ||
+        !currentTier ||
+        ['needs_plan', 'account_only', 'lapsed'].includes(signupStage)
+      "
     >
       <q-banner
         v-if="features.enableNewSubscriptions === false"
