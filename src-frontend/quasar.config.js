@@ -131,6 +131,10 @@ module.exports = configure(function (ctx) {
           target: 'http://127.0.0.1:8000',
           changeOrigin: false,
         },
+        '/_allauth': {
+          target: 'http://127.0.0.1:8000',
+          changeOrigin: false,
+        },
         '/admin': {
           target: 'http://127.0.0.1:8000',
           changeOrigin: true,

@@ -1,16 +1,22 @@
 from django.urls import path
-from rest_framework_simplejwt import views as jwt_views
+from membermatters.token_views import (
+    StaffMFAEnforcedTokenObtainPairView,
+    StaffMFAEnforcedTokenRefreshView,
+)
+from django.urls import path
 from . import views
 
 urlpatterns = [
     path("api/config/", views.GetConfig.as_view(), name="get_config"),
     path(
         "api/token/obtain/",
-        jwt_views.TokenObtainPairView.as_view(),
+        StaffMFAEnforcedTokenObtainPairView.as_view(),
         name="token_create",
     ),
     path(
-        "api/token/refresh/", jwt_views.TokenRefreshView.as_view(), name="token_refresh"
+        "api/token/refresh/",
+        StaffMFAEnforcedTokenRefreshView.as_view(),
+        name="token_refresh",
     ),
     path("api/login/", views.Login.as_view(), name="login"),
     path("api/loggedin/", views.LoggedIn.as_view(), name="loggedin"),
